@@ -1,0 +1,30 @@
+# Local / temp
+.tmp-mineru-test/
+*.log
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# UV / env
+.env
+.env.*
+
+# OS / archives
+*.zip
+*.7z
+*.rar
