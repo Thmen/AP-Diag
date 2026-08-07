@@ -1,6 +1,8 @@
 # Local / temp
-.tmp-mineru-test/
+.work_*/
+.convert_*/
 *.log
+*.bak
 .DS_Store
 Thumbs.db
 Desktop.ini

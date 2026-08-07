@@ -1,0 +1,274 @@
+{
+  "label": "before",
+  "generated_at": "2026-07-22T10:09:56.830724+00:00",
+  "versions": [
+    {
+      "version": "R19-11",
+      "stem": "AUTOSAR_AP_SWS_Diagnostics_R19-11",
+      "path": "autosar\\dm\\markdown\\AUTOSAR_AP_SWS_Diagnostics_R19-11\\AUTOSAR_AP_SWS_Diagnostics_R19-11.md",
+      "chars": 942898,
+      "lines": 4991,
+      "requirements_md": 754,
+      "requirements_pdf": 754,
+      "only_pdf": [],
+      "only_md": [],
+      "noise": {
+        "block_triangle_up": 0,
+        "block_triangle_down": 0,
+        "standalone_page_numbers": 92,
+        "copyright_c_paren": 46,
+        "document_id_footers": 0
+      },
+      "ocr": {
+        "apext_colon_colon": 0,
+        "ara_diag_space": 0,
+        "sws_dm_space_brackets": 165,
+        "wrong_h2_hints_or_bullet": 0
+      },
+      "tables": {
+        "simple": 26,
+        "complex": 421,
+        "total": 447
+      },
+      "images": {
+        "refs": 11,
+        "broken": [],
+        "broken_count": 0
+      },
+      "formulas": {
+        "html_sub_s3_fdc": 0,
+        "broken_mathsf_spans": 6
+      }
+    },
+    {
+      "version": "R20-11",
+      "stem": "AUTOSAR_AP_SWS_Diagnostics_R20-11",
+      "path": "autosar\\dm\\markdown\\AUTOSAR_AP_SWS_Diagnostics_R20-11\\AUTOSAR_AP_SWS_Diagnostics_R20-11.md",
+      "chars": 1287316,
+      "lines": 6418,
+      "requirements_md": 953,
+      "requirements_pdf": 953,
+      "only_pdf": [],
+      "only_md": [],
+      "noise": {
+        "block_triangle_up": 0,
+        "block_triangle_down": 0,
+        "standalone_page_numbers": 133,
+        "copyright_c_paren": 35,
+        "document_id_footers": 1
+      },
+      "ocr": {
+        "apext_colon_colon": 0,
+        "ara_diag_space": 0,
+        "sws_dm_space_brackets": 355,
+        "wrong_h2_hints_or_bullet": 0
+      },
+      "tables": {
+        "simple": 23,
+        "complex": 570,
+        "total": 593
+      },
+      "images": {
+        "refs": 13,
+        "broken": [],
+        "broken_count": 0
+      },
+      "formulas": {
+        "html_sub_s3_fdc": 3,
+        "broken_mathsf_spans": 4
+      }
+    },
+    {
+      "version": "R21-11",
+      "stem": "AUTOSAR_AP_SWS_Diagnostics_R21-11",
+      "path": "autosar\\dm\\markdown\\AUTOSAR_AP_SWS_Diagnostics_R21-11\\AUTOSAR_AP_SWS_Diagnostics_R21-11.md",
+      "chars": 1528296,
+      "lines": 7875,
+      "requirements_md": 1120,
+      "requirements_pdf": 1120,
+      "only_pdf": [],
+      "only_md": [],
+      "noise": {
+        "block_triangle_up": 0,
+        "block_triangle_down": 0,
+        "standalone_page_numbers": 175,
+        "copyright_c_paren": 0,
+        "document_id_footers": 1
+      },
+      "ocr": {
+        "apext_colon_colon": 0,
+        "ara_diag_space": 0,
+        "sws_dm_space_brackets": 347,
+        "wrong_h2_hints_or_bullet": 0
+      },
+      "tables": {
+        "simple": 33,
+        "complex": 707,
+        "total": 740
+      },
+      "images": {
+        "refs": 13,
+        "broken": [],
+        "broken_count": 0
+      },
+      "formulas": {
+        "html_sub_s3_fdc": 3,
+        "broken_mathsf_spans": 29
+      }
+    },
+    {
+      "version": "R22-11",
+      "stem": "AUTOSAR_AP_SWS_Diagnostics_R22-11",
+      "path": "autosar\\dm\\markdown\\AUTOSAR_AP_SWS_Diagnostics_R22-11\\AUTOSAR_AP_SWS_Diagnostics_R22-11.md",
+      "chars": 1941355,
+      "lines": 9744,
+      "requirements_md": 1419,
+      "requirements_pdf": 1419,
+      "only_pdf": [],
+      "only_md": [],
+      "noise": {
+        "block_triangle_up": 0,
+        "block_triangle_down": 0,
+        "standalone_page_numbers": 216,
+        "copyright_c_paren": 0,
+        "document_id_footers": 0
+      },
+      "ocr": {
+        "apext_colon_colon": 0,
+        "ara_diag_space": 0,
+        "sws_dm_space_brackets": 485,
+        "wrong_h2_hints_or_bullet": 0
+      },
+      "tables": {
+        "simple": 18,
+        "complex": 893,
+        "total": 911
+      },
+      "images": {
+        "refs": 13,
+        "broken": [],
+        "broken_count": 0
+      },
+      "formulas": {
+        "html_sub_s3_fdc": 0,
+        "broken_mathsf_spans": 26
+      }
+    },
+    {
+      "version": "R23-11",
+      "stem": "AUTOSAR_AP_SWS_Diagnostics_R23-11",
+      "path": "autosar\\dm\\markdown\\AUTOSAR_AP_SWS_Diagnostics_R23-11\\AUTOSAR_AP_SWS_Diagnostics_R23-11.md",
+      "chars": 2431946,
+      "lines": 12807,
+      "requirements_md": 1774,
+      "requirements_pdf": 1774,
+      "only_pdf": [],
+      "only_md": [],
+      "noise": {
+        "block_triangle_up": 0,
+        "block_triangle_down": 0,
+        "standalone_page_numbers": 310,
+        "copyright_c_paren": 17,
+        "document_id_footers": 0
+      },
+      "ocr": {
+        "apext_colon_colon": 0,
+        "ara_diag_space": 46,
+        "sws_dm_space_brackets": 972,
+        "wrong_h2_hints_or_bullet": 0
+      },
+      "tables": {
+        "simple": 41,
+        "complex": 1216,
+        "total": 1257
+      },
+      "images": {
+        "refs": 17,
+        "broken": [],
+        "broken_count": 0
+      },
+      "formulas": {
+        "html_sub_s3_fdc": 5,
+        "broken_mathsf_spans": 22
+      }
+    },
+    {
+      "version": "R24-11",
+      "stem": "AUTOSAR_AP_SWS_Diagnostics_R24-11",
+      "path": "autosar\\dm\\markdown\\AUTOSAR_AP_SWS_Diagnostics_R24-11\\AUTOSAR_AP_SWS_Diagnostics_R24-11.md",
+      "chars": 2815253,
+      "lines": 17369,
+      "requirements_md": 1914,
+      "requirements_pdf": 1915,
+      "only_pdf": [
+        "02061"
+      ],
+      "only_md": [],
+      "noise": {
+        "block_triangle_up": 0,
+        "block_triangle_down": 0,
+        "standalone_page_numbers": 320,
+        "copyright_c_paren": 0,
+        "document_id_footers": 0
+      },
+      "ocr": {
+        "apext_colon_colon": 228,
+        "ara_diag_space": 28,
+        "sws_dm_space_brackets": 1342,
+        "wrong_h2_hints_or_bullet": 1
+      },
+      "tables": {
+        "simple": 26,
+        "complex": 1357,
+        "total": 1383
+      },
+      "images": {
+        "refs": 16,
+        "broken": [],
+        "broken_count": 0
+      },
+      "formulas": {
+        "html_sub_s3_fdc": 1,
+        "broken_mathsf_spans": 28
+      }
+    },
+    {
+      "version": "R25-11",
+      "stem": "AUTOSAR_AP_SWS_Diagnostics_R25-11",
+      "path": "autosar\\dm\\markdown\\AUTOSAR_AP_SWS_Diagnostics_R25-11\\AUTOSAR_AP_SWS_Diagnostics_R25-11.md",
+      "chars": 3333603,
+      "lines": 20398,
+      "requirements_md": 2207,
+      "requirements_pdf": 2207,
+      "only_pdf": [],
+      "only_md": [],
+      "noise": {
+        "block_triangle_up": 383,
+        "block_triangle_down": 10,
+        "standalone_page_numbers": 0,
+        "copyright_c_paren": 0,
+        "document_id_footers": 0
+      },
+      "ocr": {
+        "apext_colon_colon": 255,
+        "ara_diag_space": 28,
+        "sws_dm_space_brackets": 1565,
+        "wrong_h2_hints_or_bullet": 3
+      },
+      "tables": {
+        "simple": 45,
+        "complex": 1688,
+        "total": 1733
+      },
+      "images": {
+        "refs": 16,
+        "broken": [],
+        "broken_count": 0
+      },
+      "formulas": {
+        "html_sub_s3_fdc": 4,
+        "broken_mathsf_spans": 27
+      }
+    }
+  ]
+}

@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-PDF_DIR = ROOT / "autosar" / "dm"
+PDF_DIR = ROOT / "autosar" / "dm" / "autosar"
 MARKDOWN_DIR = ROOT / "autosar" / "dm" / "markdown"
 AUDIT_DIR = MARKDOWN_DIR / "_audit"
 

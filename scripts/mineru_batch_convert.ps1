@@ -14,7 +14,7 @@ param(
     [int]$HealthWaitMinutes = 30,
     [int]$PageChunkSize = 32,
     [switch]$PostProcess,
-    # Safety: converting the whole autosar/dm tree wipes existing markdown outputs.
+    # Safety: converting many PDFs at once wipes existing markdown outputs.
     [switch]$AllowMany
 )
 
@@ -22,8 +22,8 @@ $ErrorActionPreference = "Stop"
 $ScriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectRoot = Split-Path -Parent $ScriptRoot
 
-if (-not $PdfDir) { $PdfDir = Join-Path $ProjectRoot "autosar\dm" }
-if (-not $OutDir) { $OutDir = Join-Path $PdfDir "markdown" }
+if (-not $PdfDir) { $PdfDir = Join-Path $ProjectRoot "autosar\dm\autosar" }
+if (-not $OutDir) { $OutDir = Join-Path $ProjectRoot "autosar\dm\markdown" }
 
 $ApiBase = $ApiBase.TrimEnd("/")
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null

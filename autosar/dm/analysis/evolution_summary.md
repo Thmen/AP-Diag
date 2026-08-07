@@ -1,111 +1,96 @@
 # AUTOSAR AP Diagnostics Evolution Analysis (auto-generated)
 
 ## R19-11
-
-- requirements: 754, toc entries: 306, chars: 942898
+- requirements: 754, toc entries: 306, chars: 938374
 - official change note: Document quality improvement andfixing bugsIncorporated Quality Scope ReviewFindingsPartly removed obsoleterequirementsRemoved obsolete service interfacesChanged Document Status fromFinal to published
 
 ## R20-11
-
-- requirements: 951, toc entries: 265, chars: 1287316
-- official change note: Document quality improvement andfixing bugsIncorporated Quality Scope ReviewFindingsValidated requirements from conceptDolPExtensionIntroduced UDS services 2A & 2C
+- requirements: 953, toc entries: 265, chars: 1283246
+- official change note: Document quality improvement andfixing bugsIncorporated Quality Scope ReviewFindingsValidated requirements from conceptDolPExtensionIntroduced UDS services 2A &amp; 2C
 
 ## R21-11
-
-- requirements: 1119, toc entries: 261, chars: 1528296
+- requirements: 1120, toc entries: 261, chars: 1523117
 - official change note: Document quality improvement andfixing bugsIncorporated Quality Scope ReviewFindingsIntroduced UDS service 29Introduced Event Combination inchapter 7
 
 ## R22-11
-
-- requirements: 1419, toc entries: 0, chars: 1941355
+- requirements: 1419, toc entries: 0, chars: 1936713
 - official change note: Document quality improvement andfixing bugsIncorporated Quality Scope ReviewFindingsIntroduced DTC suppressed featureStandardize mapping of vendorspecific error codes to UDS ErrorcodesIntroduced 0x38 RequestFileTransferIntroduced SOVD Concept
 
 ## R23-11
-
-- requirements: 1774, toc entries: 0, chars: 2431946
+- requirements: 1774, toc entries: 0, chars: 2425013
 - official change note: • Document quality improvement andfixing bugs• Incorporated Quality Scope ReviewFindings• SOVD Concept Part 2 implemented• Service 0x29 refinements
 
 ## R24-11
-
-- requirements: 1913, toc entries: 0, chars: 2815253
+- requirements: 1915, toc entries: 0, chars: 2807884
 - official change note: • Document quality improvement,clarifications and fixing bugs• Document structure updated• Formalized generated interface classesfor DID, RID and DataElements• Standardized Violations added● Term Reentrancy is changed toConcurrency• Support DolP amendment 2023 protocolversion 4• Harmonization with CP• Explicit no-debouncing forara::diag::monitor• SecurityEvents added
 
 ## R25-11
-
-- requirements: 2207, toc entries: 449, chars: 3333603
+- requirements: 2207, toc entries: 449, chars: 3324967
 
 ## Pairwise deltas
-
-### R19-11 -> R20-11: +198 reqs, -1 reqs
-
-- note: Document quality improvement andfixing bugsIncorporated Quality Scope ReviewFindingsValidated requirements from conceptDolPExtensionIntroduced UDS services 2A & 2C
+### R19-11 -> R20-11: +199 reqs, -0 reqs
+- note: Document quality improvement andfixing bugsIncorporated Quality Scope ReviewFindingsValidated requirements from conceptDolPExtensionIntroduced UDS services 2A &amp; 2C
 - toc added sample:
-  - 8.3.2.4.2 DataElement constructor
-  - 7.4.3 Dispatching of UDS Requests
-  - 7.5.2.1.1 Definition
-  - 7.5.1.1.2 Life-cycle of a Diagnostic Conversation
-  - 7.5.4.2.1 Supported Diagnostic Mappings
-  - 8.3.2.2.7 Routine::StopOffer function
-  - 8.3.3.6.5 diag::Indicator::SetNotifier function
+  - 7.5.1.7 Cancellation of a Diagnostic Conversation
+  - 7.5.1.1 Diagnostic Conversations
+  - 8.3.1.7.8 diag::GenericRoutine::RequestResults function
+  - 7.5.2.1.2 Monitors
+  - 8.3.1.2.10 diag::MetaInfo::\~MetaInfo destructor
+  - 8.3.3.1.4 diag::Event::DebouncingState type
+  - 8.3.3.4.1 diag::ConditionType type
+  - 8.3.3.1.6 diag::Event::\~Event destructor
+  - 7.5.2.3.2.3 Indicators
+  - 8.3.3.7.1 diag::ConfirmationStatusType
+  - 8.3.1.6 GenericDataIdentifier class
   - 8.3.1.7.2 diag::GenericRoutine::GenericRoutine function
-  - 8.3.1.4.6 diag::Monitor::ReportMonitorAction function
-  - 8.3.3.1.1 diag::DTCFormatType type
-  - 8.3.3.3.3 diag::SecurityLevelType type
-  - 7.4.1.4 Channel Notifications
 - keyword delta: {'SecurityEvent': 3, 'DoIP': 4, '0x2A': 23, '0x2C': 7, 'MetaInfo': 88, 'Reentrancy': 92, 'snapshot': 6, 'extended data': 36}
 
-### R20-11 -> R21-11: +169 reqs, -1 reqs
-
+### R20-11 -> R21-11: +167 reqs, -0 reqs
 - note: Document quality improvement andfixing bugsIncorporated Quality Scope ReviewFindingsIntroduced UDS service 29Introduced Event Combination inchapter 7
 - toc added sample:
-  - 8.3.1.15 ServiceValidation class .
-  - 7.5.1.3.1 ExternalAuthentication
-  - 7.5.2.2 Diagnostic Events
-  - 8.3.1.20.5 diag::EcuResetRequest::ExecuteReset function
-  - 8.3.1.20.3 diag::EcuResetRequest::Offer function
-  - 8.3.1.22 ClientAuthentication class
-  - 7.5.1.8.14 Service 0x31 – RoutineControl
-  - 7.5.1.5 UDS request Validation/Verification
-  - 7.5.1.8.16 Service 0x35 – RequestUpload
-  - 8.3.1.9.1 diag::DTCFormatType type
-  - 8.3.1.9.4 diag::Event::DebouncingState type
-  - 7.5.2.5.1.1 Format
+  - 8.3.1.17 CommunicationControl class
+  - 8.3.1.19.2 diag::UploadService::UploadService function
+  - 7.5.2.5.4 DTC related data
+  - 8.3.1.16.6 diag::SecurityAccess::Offer function
+  - 7.5.1.8.11 Service 0x2A – ReadDataByPeriodicIdentifier
+  - 8.3.1.9.11 diag::Event::GetDTCNumber function
+  - 7.5.1.5.3 Session and Security Checks .
+  - 7.5.2.2.6.3 Monitor-internal debouncing
+  - 8.3.1.9.12 diag::Event::GetDebouncingStatus function
+  - 8.3.1.19 UploadService class
+  - 7.5.1.3.2 ClientAuthentication
+  - 7.5.1.8.10.3 ProofOfOwnership
 - keyword delta: {'Authentication': 499, 'DynamicAccessList': 290, 'DoIP': 1, 'Software Cluster': 1, 'Event Combination': 35, '0x29': 15, '0x2C': 1, 'MetaInfo': 14, 'Reentrancy': 11, 'snapshot': 15, 'extended data': 4}
 
-### R21-11 -> R22-11: +300 reqs, -0 reqs
-
+### R21-11 -> R22-11: +299 reqs, -0 reqs
 - note: Document quality improvement andfixing bugsIncorporated Quality Scope ReviewFindingsIntroduced DTC suppressed featureStandardize mapping of vendorspecific error codes to UDS ErrorcodesIntroduced 0x38 RequestFileTransferIntroduced SOVD Concept
 - keyword delta: {'SOVD': 715, 'Authentication': 60, 'DynamicAccessList': 33, 'SecurityEvent': 1, 'DoIP': 86, 'Software Cluster': -1, 'suppressed': 45, 'RequestFileTransfer': 30, '0x2C': -1, '0x38': 10, 'MetaInfo': 54, 'Reentrancy': 23, 'snapshot': 21, 'extended data': 1}
 
 ### R22-11 -> R23-11: +355 reqs, -0 reqs
-
 - note: • Document quality improvement andfixing bugs• Incorporated Quality Scope ReviewFindings• SOVD Concept Part 2 implemented• Service 0x29 refinements
 - keyword delta: {'SOVD': 1058, 'Authentication': 116, 'DynamicAccessList': -7, 'DoIP': 142, 'Software Cluster': 2, 'RequestFileTransfer': 1, '0x29': 2, '0x2A': 1, '0x2C': 2, '0x38': 1, 'MetaInfo': 53, 'Reentrancy': 22, 'snapshot': 4, 'extended data': 10}
 
-### R23-11 -> R24-11: +139 reqs, -0 reqs
-
+### R23-11 -> R24-11: +141 reqs, -0 reqs
 - note: • Document quality improvement,clarifications and fixing bugs• Document structure updated• Formalized generated interface classesfor DID, RID and DataElements• Standardized Violations added● Term Reentrancy is changed toConcurrency• Support DolP amendment 2023 protocolversion 4• Harmonization with CP• Explicit no-debouncing forara::diag::monitor• SecurityEvents added
 - keyword delta: {'SOVD': 191, 'Authentication': -12, 'DynamicAccessList': -40, 'SecurityEvent': 1, 'DoIP': -23, 'Event Combination': 4, 'suppressed': -24, 'RequestFileTransfer': 9, '0x29': 4, '0x2A': 1, '0x2C': 1, '0x38': 5, 'MetaInfo': -14, 'no-debouncing': 1, 'Reentrancy': -146, 'Concurrency': 176, 'snapshot': 15, 'extended data': 24, 'IAM': 1}
 
-### R24-11 -> R25-11: +294 reqs, -0 reqs
-
+### R24-11 -> R25-11: +292 reqs, -0 reqs
 - toc added sample:
-  - 8.9.2 Global Variables
-  - 8.5.1.2.3.5 operator=(ClientAuthentication&&) &
-  - 8.11.3.1 Public Member Types
-  - 8.10.4.1.3 Member Functions
-  - 7.5.1 Security Events .
-  - 8.10.4 Class: DataTransferReadSession
-  - 8.9.3.2.1 Special Member Functions
-  - 7.3.2.6 UDS response handling
-  - 8.10.4.1 Public Member Functions
-  - 8.10.4.1.1.2 Move Constructor .
-  - 1.2 AUTOSAR Diagnostic Extract Template (DEXT)
-  - 7.3.1.1.1 Provision of MetaInfo
+  - 8.11.2.1.4 MakeErrorCode
+  - 4.1 Known Limitations
+  - 7.3.2.8.9 Service 0x27 – SecurityAccess
+  - 7.3.4.4.9 Event memory overflow
+  - 8.4.1.1 Public Member Types .
+  - 7.3.2.1.1 Multiple Client Handling
+  - 8.10.6.1.1.1 Move Constructor
+  - 8.10.7.1.3.1 operator=(DataTransferWriteSession const&)
+  - 7.3.4.2 Condition Mangement
+  - 8.11.3.2.2.1 Message
+  - 8.8.3.1.1 read
+  - 8.11.5.2.2.3 ThrowAsException
 - keyword delta: {'SOVD': 1793, 'Authentication': 54, 'DynamicAccessList': 34, 'SecurityEvent': 4, 'DoIP': 89, 'Software Cluster': 1, 'Event Combination': 1, 'RequestFileTransfer': 1, '0x29': 12, '0x38': 2, 'MetaInfo': 27, 'Reentrancy': -1, 'Concurrency': 59, 'snapshot': 88, 'extended data': 42, 'IAM': 6}
 
 ## R19 -> R25 overall
-
 {
   "req_added_total": 1453,
   "req_removed_total": 0,
