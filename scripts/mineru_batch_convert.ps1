@@ -12,7 +12,10 @@ param(
     [int]$PollSeconds = 10,
     [int]$TimeoutMinutes = 90,
     [int]$HealthWaitMinutes = 30,
-    [int]$PageChunkSize = 32
+    [int]$PageChunkSize = 32,
+    [switch]$PostProcess,
+    # Safety: converting the whole autosar/dm tree wipes existing markdown outputs.
+    [switch]$AllowMany
 )
 
 $ErrorActionPreference = "Stop"
@@ -247,7 +250,8 @@ function Merge-ChunkIntoDest {
 
     foreach ($kv in $nameMap.GetEnumerator()) {
         $old = [regex]::Escape($kv.Key)
-        $mdText = [regex]::Replace($mdText, $old, $kv.Value)
+        # Rewrite only inside markdown link/image destinations to avoid body-text collisions.
+        $mdText = [regex]::Replace($mdText, "(\]\([^)]*?)$old", "`${1}$($kv.Value)")
     }
     $mdText = $mdText -replace '\]\((?:\./)?(?:[^)\s]*/)?(images/[^)\s]+)\)', '](./$1)'
     $mdText = $mdText -replace '\]\((?:\./)?(c\d{2}_[^)/\s]+\.(?:png|jpg|jpeg|gif|webp|bmp|svg))\)', '](./images/$1)'
@@ -304,8 +308,17 @@ function Test-MarkdownFormat {
         $notes.Add("warning: unpaired code fences count=$fenceCount")
     }
 
+    # MinerU block markers: standalone lines or glued to content (e.g. "△<table>...")
+    $triangleStandalone = ([regex]::Matches($text, '(?m)^[ \t]*[△▽][ \t]*$')).Count
+    $triangleGlued = ([regex]::Matches($text, '(?m)^[ \t]*[△▽](?=\S)')).Count
+    $triangleTotal = $triangleStandalone + $triangleGlued
+    if ($triangleTotal -gt 0) {
+        $notes.Add("warning: MinerU block markers △/▽ count=$triangleTotal")
+    }
+
     $imgRefs = [regex]::Matches($text, '!\[[^\]]*\]\(([^)]+)\)')
     $missing = 0
+    $localRefNames = New-Object 'System.Collections.Generic.HashSet[string]'
     foreach ($m in $imgRefs) {
         $ref = $m.Groups[1].Value.Trim().Trim('"').Trim("'")
         if ($ref -match '^(https?:|data:)') { continue }
@@ -314,11 +327,27 @@ function Test-MarkdownFormat {
         if (-not (Test-Path $candidate)) {
             $alt = Join-Path (Join-Path $DestDir "images") ([IO.Path]::GetFileName($rel))
             if (-not (Test-Path $alt)) { $missing++ }
+            else { [void]$localRefNames.Add([IO.Path]::GetFileName($rel)) }
+        }
+        else {
+            [void]$localRefNames.Add([IO.Path]::GetFileName($rel))
         }
     }
     if ($missing -gt 0) {
         $ok = $false
         $notes.Add("missing image files: $missing")
+    }
+
+    $imagesDir = Join-Path $DestDir "images"
+    if (Test-Path $imagesDir) {
+        $imgFiles = @(Get-ChildItem -Path $imagesDir -File -ErrorAction SilentlyContinue)
+        $orphan = 0
+        foreach ($f in $imgFiles) {
+            if (-not $localRefNames.Contains($f.Name)) { $orphan++ }
+        }
+        if ($orphan -gt 0) {
+            $notes.Add("warning: unreferenced image files=$orphan (of $($imgFiles.Count))")
+        }
     }
 
     if ($notes.Count -eq 0) { $notes.Add("ok") }
@@ -336,6 +365,9 @@ $pdfs = @(Get-ChildItem -Path $PdfDir -Filter "*.pdf" -File | Sort-Object Name)
 if ($pdfs.Count -eq 0) {
     throw "No PDF files found in $PdfDir"
 }
+if ($pdfs.Count -gt 3 -and -not $AllowMany) {
+    throw "PdfDir contains $($pdfs.Count) PDFs (refusing bulk convert that would wipe existing markdown). Pass -AllowMany to proceed, or point -PdfDir at a smaller subset."
+}
 
 Write-Log "ApiBase=$ApiBase"
 Write-Log "PdfDir=$PdfDir ($($pdfs.Count) files)"
@@ -343,7 +375,8 @@ Write-Log "OutDir=$OutDir"
 Write-Log "PageChunkSize=$PageChunkSize TimeoutMinutes=$TimeoutMinutes"
 
 $batchStart = Get-Date
-$records = New-Object System.Collections.Generic.List[object]
+# ArrayList: Windows PowerShell 5.1 throws ArgumentException on @($List[object])
+$records = New-Object System.Collections.ArrayList
 
 foreach ($pdf in $pdfs) {
     $stem = [IO.Path]::GetFileNameWithoutExtension($pdf.Name)
@@ -408,7 +441,7 @@ foreach ($pdf in $pdfs) {
             Remove-Item -Force $zipPath -ErrorAction SilentlyContinue
         }
 
-        $rec.task_ids = @($taskIds)
+        $rec.task_ids = $taskIds.ToArray()
         $rec.task_id = ($taskIds -join ",")
         $mdPath = Join-Path $destDir "$stem.md"
         $rec.md_bytes = (Get-Item $mdPath).Length
@@ -417,12 +450,24 @@ foreach ($pdf in $pdfs) {
         $fmt = Test-MarkdownFormat -MdPath $mdPath -DestDir $destDir
         $rec.format_ok = [bool]$fmt.format_ok
         $rec.format_notes = [string]$fmt.format_notes
+        if ($PostProcess) {
+            Write-Log "PostProcess: fix_dm_markdown.py --stem $stem"
+            $fixScript = Join-Path $ScriptRoot "fix_dm_markdown.py"
+            & uv run $fixScript --stem $stem --no-backup
+            if ($LASTEXITCODE -ne 0) {
+                throw "fix_dm_markdown.py failed for $stem (exit $LASTEXITCODE)"
+            }
+            $fmt = Test-MarkdownFormat -MdPath $mdPath -DestDir $destDir
+            $rec.format_ok = [bool]$fmt.format_ok
+            $rec.format_notes = [string]$fmt.format_notes
+            $rec.post_process = $true
+        }
         $rec.status = "completed"
         Write-Log "Done $stem md_bytes=$($rec.md_bytes) images=$($rec.image_count) format_ok=$($rec.format_ok)"
     }
     catch {
         $rec.status = "failed"
-        $rec.task_ids = @($taskIds)
+        $rec.task_ids = $taskIds.ToArray()
         if ($taskIds.Count -gt 0) { $rec.task_id = ($taskIds -join ",") }
         $rec.error = $_.Exception.Message
         Write-Log "FAILED $($pdf.Name): $($rec.error)"
@@ -431,7 +476,7 @@ foreach ($pdf in $pdfs) {
         $finished = Get-Date
         $rec.finished_at = $finished.ToString("o")
         $rec.elapsed_sec = [math]::Round(($finished - $started).TotalSeconds, 1)
-        $records.Add([pscustomobject]$rec)
+        [void]$records.Add([pscustomobject]$rec)
         if (Test-Path $workDir) {
             Remove-Item -Recurse -Force $workDir -ErrorAction SilentlyContinue
         }
@@ -440,9 +485,10 @@ foreach ($pdf in $pdfs) {
 
 $batchEnd = Get-Date
 $totalSec = [math]::Round(($batchEnd - $batchStart).TotalSeconds, 1)
-$okCount = @($records | Where-Object { $_.status -eq "completed" }).Count
-$failCount = $records.Count - $okCount
-$completedOnly = @($records | Where-Object { $_.status -eq "completed" })
+$recordItems = @($records.ToArray())
+$okCount = @($recordItems | Where-Object { $_.status -eq "completed" }).Count
+$failCount = $recordItems.Count - $okCount
+$completedOnly = @($recordItems | Where-Object { $_.status -eq "completed" })
 $avgSec = if ($completedOnly.Count -gt 0) {
     [math]::Round((($completedOnly | Measure-Object -Property elapsed_sec -Average).Average), 1)
 } else { 0 }
@@ -461,20 +507,22 @@ $reportObj = [ordered]@{
     success_count               = $okCount
     failed_count                = $failCount
     average_elapsed_sec_success = $avgSec
-    tasks                       = @($records)
+    tasks                       = $recordItems
 }
-$reportObj | ConvertTo-Json -Depth 8 | Set-Content -Path $reportJsonPath -Encoding UTF8
+($reportObj | ConvertTo-Json -Depth 8) | Set-Content -Path $reportJsonPath -Encoding UTF8
 
-$fmtPass = @($records | Where-Object { $_.format_ok }).Count
-$tableRows = foreach ($r in $records) {
-    $note = if ($r.error) { $r.error } else { $r.format_notes }
+$fmtPass = @($recordItems | Where-Object { $_.format_ok }).Count
+$tableRows = foreach ($r in $recordItems) {
+    $note = if ($r.error) { [string]$r.error } else { [string]$r.format_notes }
     $note = ($note -replace '\|', '/' -replace "`r?`n", " ")
     if ($note.Length -gt 120) { $note = $note.Substring(0, 117) + "..." }
     "| $($r.file) | $($r.status) | $($r.elapsed_sec) | $($r.page_count) | $($r.chunk_count) | $($r.md_bytes) | $($r.image_count) | $($r.format_ok) | $note |"
 }
-$fmtLines = foreach ($r in $records) {
+$fmtLines = foreach ($r in $recordItems) {
     "- ``$($r.stem)``: ok=$($r.format_ok); $($r.format_notes)"
 }
+if ($null -eq $tableRows) { $tableRows = @() }
+if ($null -eq $fmtLines) { $fmtLines = @() }
 
 $reportMd = @"
 # MinerU Batch Conversion Report
@@ -484,21 +532,21 @@ $reportMd = @"
 - Started: $($batchStart.ToString('yyyy-MM-dd HH:mm:ss'))
 - Finished: $($batchEnd.ToString('yyyy-MM-dd HH:mm:ss'))
 - Total elapsed: ${totalSec}s
-- Success: $okCount / $($records.Count); Failed: $failCount
+- Success: $okCount / $($recordItems.Count); Failed: $failCount
 - Average elapsed (success): ${avgSec}s
 
 | File | Status | Elapsed (s) | Pages | Chunks | MD bytes | Images | Format OK | Notes / Error |
 |------|--------|-------------|-------|--------|----------|--------|-----------|---------------|
-$($tableRows -join "`n")
+$((@($tableRows) -join "`n"))
 
 ## Format check summary
 
-- format_ok: $fmtPass / $($records.Count)
+- format_ok: $fmtPass / $($recordItems.Count)
 
-$($fmtLines -join "`n")
+$((@($fmtLines) -join "`n"))
 "@
 
-[System.IO.File]::WriteAllText($reportMdPath, $reportMd, [System.Text.UTF8Encoding]::new($false))
+[System.IO.File]::WriteAllText($reportMdPath, [string]$reportMd, [System.Text.UTF8Encoding]::new($false))
 
 Write-Log "Report written: $reportMdPath"
 Write-Log "JSON written:  $reportJsonPath"

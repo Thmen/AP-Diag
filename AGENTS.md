@@ -51,10 +51,16 @@ AP-DM/
 - 默认 API：`http://192.168.12.29:8000`（异步 `/tasks`）
 - 推荐参数：`backend=pipeline`，`parse_method=txt`，分页块转换（避免 OOM）
 - 输出：`autosar/dm/markdown/<stem>/<stem>.md`（及图片资源）
-- 环境：Windows PowerShell；页数统计用 `uv run --with pypdf`
+- 环境：Windows PowerShell 5.1（`powershell.exe`）；页数统计用 `uv run --with pypdf`
+- 可选后处理：加 `-PostProcess` 会调用 `fix_dm_markdown.py --stem <pdf stem>`（SWS 与 TPS 等均可；仅 SWS Diagnostics 会补丁缺失需求 ID）
 
 ```powershell
-pwsh -File scripts/mineru_batch_convert.ps1
+# 本仓库默认环境为 Windows PowerShell 5.1（powershell.exe）。
+# 若已安装 PowerShell 7+，也可用 pwsh，但勿假定本机一定有 pwsh。
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/mineru_batch_convert.ps1
+# 转换后顺带清洗 MinerU 噪声：
+# powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/mineru_batch_convert.ps1 -PostProcess
+# 一次转换超过 3 个 PDF 时需显式 -AllowMany（避免误清已有 markdown）
 ```
 
 勿默认改用 `hybrid-engine`（该环境曾因设备配置失败）。改 API 地址或转换策略须经用户确认。
