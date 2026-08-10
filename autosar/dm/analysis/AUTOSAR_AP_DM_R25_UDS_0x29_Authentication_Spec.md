@@ -57,6 +57,7 @@
 
 - 总体演进背景见 [AUTOSAR AP DM Evolution Report R19–R25](./AUTOSAR_AP_DM_Evolution_Report_R19-R25.md)。
 - R25 相对 R19 的五大方向与工作量框架见 [AUTOSAR AP DM R25 vs R19 Five Directions](./AUTOSAR_AP_DM_R25_vs_R19_Five_Directions.md)。
+- DEXT / AP Manifest 配置项清单见 [AUTOSAR AP DM R25 0x29 DEXT Manifest Config](./AUTOSAR_AP_DM_R25_0x29_DEXT_Manifest_Config.md)。
 - 本文不复制上述报告的宏观叙事，只展开 0x29 的实现边界、AR 和测试闭环。
 
 ## 1. 目的、方法与证据规则
@@ -291,6 +292,8 @@ sequenceDiagram
 这不是 ISO 14229-1:2020 的“完整 NRC 集”。服务特定 NRC、所有长度分支和双重失败时的优先级必须由授权 ISO/OEM 测试向量补齐。[ISO]
 
 ## 6. API 与 DEXT 功能 Spec
+
+> 配置元类/属性的完整清单、AP↔CP 差异与 constr 对照见独立文档 [AUTOSAR_AP_DM_R25_0x29_DEXT_Manifest_Config.md](./AUTOSAR_AP_DM_R25_0x29_DEXT_Manifest_Config.md)。本节保留行为相关摘要，供 AR/TC 追溯。
 
 ### 6.1 DEXT 配置对象
 

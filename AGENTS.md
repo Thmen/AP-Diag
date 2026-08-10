@@ -100,6 +100,7 @@ uv run scripts/analyze_dm_evolution.py
 - `AUTOSAR_AP_DM_R25_vs_R19_Five_Directions.md` — 五大技术方向
 - `AUTOSAR_AP_DM_SOVD_Technical_Introduction.md` — SOVD 技术介绍
 - `AUTOSAR_AP_DM_R25_UDS_0x29_Authentication_Spec.md` — UDS 0x29（APCE 子集）规范级分析
+- `AUTOSAR_AP_DM_R25_0x29_DEXT_Manifest_Config.md` — 0x29 相关 DEXT / AP Manifest 配置项清单
 
 新增报告应与上述交叉链接，避免重复堆砌同一结论。
 
