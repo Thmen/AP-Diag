@@ -117,6 +117,8 @@ uv run --project scripts scripts/unpack_markdown_images.py
 
 指纹未变且 `images.tar.xz` 已存在时 pack 会 SKIP；本地 `images/` 指纹已匹配时 unpack 会 SKIP。
 
+历史中的散图（`markdown/**/images/**`）与中间态 `images.tar` 已用 `git filter-repo` 从全部 refs 剔除；新 clone / LFS 同步只需拉取 `*.pdf` 与 `images.tar.xz`。远端未引用 LFS 对象的配额回收以 GitHub/Gitee 控制台为准（可能有延迟）。
+
 ### C. 跨版本演进统计
 
 ```powershell
