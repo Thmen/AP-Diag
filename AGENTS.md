@@ -27,6 +27,10 @@ AP-DM/
 │   ├── iso/                           # 相关 ISO 标准 PDF（如 ISO 14229-1）
 │   ├── markdown/                      # 机器转换 Markdown（含 AUTOSAR / ISO stem）
 │   │   ├── AUTOSAR_AP_SWS_Diagnostics_Rxx-11/
+│   │   │   ├── <stem>.md              # 进 Git
+│   │   │   ├── images.tar             # 进 Git LFS（散图打包）
+│   │   │   ├── images.sha256          # 进 Git（增量指纹）
+│   │   │   └── images/                # 本地解压；gitignore
 │   │   ├── ISO_14229-1-2020/          # 文件名含空格的 PDF 转换时用无空格 stem
 │   │   └── _audit/                    # Markdown 审计快照（可选证据）
 │   └── analysis/                      # 人工/半自动分析报告（主要交付物）
@@ -37,9 +41,12 @@ AP-DM/
 │   ├── pyproject.toml / uv.lock       # uv 依赖锁（当前主要是 pypdf）
 │   ├── .venv/                         # 本地环境（gitignore；由 uv sync 生成）
 │   ├── mineru_batch_convert.ps1       # PDF → Markdown 批量转换
+│   ├── pack_markdown_images.py        # images/ → images.tar（增量）
+│   ├── unpack_markdown_images.py      # images.tar → images/（增量）
 │   ├── fix_dm_markdown.py             # MinerU 噪声清洗（可选后处理）
 │   ├── audit_dm_markdown.py           # Markdown vs PDF 审计
 │   ├── dm_markdown_common.py          # 审计/清洗共享工具
+│   ├── markdown_image_bundles.py      # 图片打包/解压共享逻辑
 │   └── analyze_dm_evolution.py        # 跨版本需求/关键词统计
 ```
 
@@ -72,6 +79,7 @@ AP-DM/
 - 环境：Windows PowerShell 5.1（`powershell.exe`）；页数统计 / Python 脚本优先 `uv run --project scripts ...`
 - 文件名含空格的 PDF：先复制到 `.convert_*/` 下的无空格 stem 再转（该目录已 gitignore）
 - 可选后处理：加 `-PostProcess` 会调用 `fix_dm_markdown.py --stem <pdf stem>`（SWS 与 TPS 等均可；仅 SWS Diagnostics 会补丁缺失需求 ID）
+- 转换出图后须打包再提交：`uv run --project scripts scripts/pack_markdown_images.py`（增量；仅变更的 stem 会重写 `images.tar`）
 - 批次中间产物：`markdown/batch_run.log`、`batch_report.md`、`batch_report.json`（已 gitignore，勿提交）
 
 ```powershell
@@ -83,11 +91,33 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/mineru_batch_con
 # 一次转换超过 3 个 PDF 时需显式 -AllowMany（避免误清已有 markdown）
 # ISO 示例：
 # powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/mineru_batch_convert.ps1 -PdfDir autosar\dm\.convert_iso_14229
+# 打包 images/ → images.tar（LFS；增量跳过未变更 stem）：
+uv run --project scripts scripts/pack_markdown_images.py
 ```
 
 勿默认改用 `hybrid-engine`（该环境曾因设备配置失败）。改 API 地址或转换策略须经用户确认。
 
-### B. 跨版本演进统计
+### B. Markdown 图片包（LFS）
+
+散图 `markdown/<stem>/images/` **不进库**（gitignore）；每个 stem 同目录存放：
+
+- `images.tar` — 未压缩 tar，Git LFS
+- `images.sha256` — 树指纹，供增量跳过
+
+```powershell
+# 打包（转换后 / 提交前）
+uv run --project scripts scripts/pack_markdown_images.py
+# 仅某一 stem；强制重打：
+# uv run --project scripts scripts/pack_markdown_images.py --stem AUTOSAR_AP_SWS_Diagnostics_R25-11 --force
+
+# clone / pull 后解压到本地 images/
+uv run --project scripts scripts/unpack_markdown_images.py
+# git lfs pull 后再 unpack；若只要 PDF：git lfs pull --include="*.pdf"
+```
+
+指纹未变且 `images.tar` 已存在时 pack 会 SKIP；本地 `images/` 指纹已匹配时 unpack 会 SKIP。
+
+### C. 跨版本演进统计
 
 ```powershell
 uv run --project scripts scripts/analyze_dm_evolution.py
@@ -97,7 +127,7 @@ uv run --project scripts scripts/analyze_dm_evolution.py
 - 输出：`autosar/dm/analysis/evolution_summary.md` 与 `.json`（自动生成，可被覆盖）
 - 正式叙事报告写在 `AUTOSAR_AP_DM_*.md`，不要只停在 summary
 
-### C. 撰写/更新分析报告
+### D. 撰写/更新分析报告
 
 放在 `autosar/dm/analysis/`，中文为主，结构清晰：目的 → 方法 → 发现 → 对 DM 实现的含义。
 

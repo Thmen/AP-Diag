@@ -6,6 +6,8 @@
 # MinerU batch convert intermediates under markdown OutDir
 batch_report.md
 batch_report.json
+# MinerU images: packed as <stem>/images.tar (+ images.sha256); unpack locally
+autosar/dm/markdown/**/images/
 .DS_Store
 Thumbs.db
 Desktop.ini
