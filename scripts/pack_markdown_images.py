@@ -18,7 +18,6 @@ from markdown_image_bundles import (
     iter_stem_bundles,
     pack_images_tar,
     read_fingerprint,
-    remove_legacy_plain_tar,
     repo_rel,
     tree_fingerprint,
     write_fingerprint,
@@ -47,7 +46,6 @@ def pack_one(stem: str, *, force: bool, dry_run: bool) -> str:
     with Timed() as t:
         n = pack_images_tar(bundle.images_dir, bundle.tar_path)
         write_fingerprint(bundle.fingerprint_path, digest, file_count=n)
-        remove_legacy_plain_tar(bundle)
     size_mb = bundle.tar_path.stat().st_size / (1024 * 1024)
     return (
         f"PACK  {stem}: {n} files -> {repo_rel(bundle.tar_path)} "

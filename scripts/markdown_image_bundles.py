@@ -11,11 +11,9 @@ from dm_markdown_common import MARKDOWN_DIR, ROOT
 
 IMAGE_DIR_NAME = "images"
 TAR_NAME = "images.tar.xz"
-LEGACY_TAR_NAME = "images.tar"
 FINGERPRINT_NAME = "images.sha256"
 FIXED_MTIME = 0
 FIXED_MODE = 0o644
-# Most space-efficient setting from local probe (~55% vs plain tar).
 XZ_PRESET = 6
 
 IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg"}
@@ -33,10 +31,6 @@ class StemBundle:
     @property
     def tar_path(self) -> Path:
         return self.stem_dir / TAR_NAME
-
-    @property
-    def legacy_tar_path(self) -> Path:
-        return self.stem_dir / LEGACY_TAR_NAME
 
     @property
     def fingerprint_path(self) -> Path:
@@ -144,15 +138,6 @@ def pack_images_tar(images_dir: Path, tar_path: Path) -> int:
     return len(files)
 
 
-def _open_bundle_for_read(tar_path: Path) -> tarfile.TarFile:
-    name = tar_path.name.lower()
-    if name.endswith(".tar.xz"):
-        return tarfile.open(tar_path, mode="r:xz")
-    if name.endswith(".tar"):
-        return tarfile.open(tar_path, mode="r:")
-    return tarfile.open(tar_path, mode="r:*")
-
-
 def unpack_images_tar(tar_path: Path, images_dir: Path, *, clean: bool = True) -> int:
     if not tar_path.is_file():
         raise FileNotFoundError(f"missing tar: {tar_path}")
@@ -173,7 +158,7 @@ def unpack_images_tar(tar_path: Path, images_dir: Path, *, clean: bool = True) -
         extract_kwargs["filter"] = "data"
 
     count = 0
-    with _open_bundle_for_read(tar_path) as tar:
+    with tarfile.open(tar_path, mode="r:xz") as tar:
         members = [m for m in tar.getmembers() if m.isfile()]
         members.sort(key=lambda m: m.name)
         for member in members:
@@ -186,15 +171,6 @@ def unpack_images_tar(tar_path: Path, images_dir: Path, *, clean: bool = True) -
             tar.extract(member, path=images_dir, **extract_kwargs)
             count += 1
     return count
-
-
-def remove_legacy_plain_tar(bundle: StemBundle) -> bool:
-    """Delete leftover uncompressed images.tar after migrating to .tar.xz."""
-    legacy = bundle.legacy_tar_path
-    if legacy.is_file():
-        legacy.unlink()
-        return True
-    return False
 
 
 def repo_rel(path: Path) -> str:
