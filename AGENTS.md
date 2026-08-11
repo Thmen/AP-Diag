@@ -20,21 +20,22 @@
 AP-DM/
 ├── AGENTS.md
 ├── autosar/dm/
-│   ├── autosar/                       # 官方规范 PDF（权威原文）
+│   ├── autosar/                       # AUTOSAR 官方规范 PDF（权威原文）
 │   │   ├── AUTOSAR_AP_SWS_Diagnostics_Rxx-11.pdf
 │   │   ├── AUTOSAR_AP_TPS_ManifestSpecification_R25-11.pdf
 │   │   └── AUTOSAR_CP_TPS_DiagnosticExtractTemplate_R25-11.pdf
-│   ├── markdown/
+│   ├── iso/                           # 相关 ISO 标准 PDF（如 ISO 14229-1）
+│   ├── markdown/                      # 机器转换 Markdown（含 AUTOSAR / ISO stem）
 │   │   ├── AUTOSAR_AP_SWS_Diagnostics_Rxx-11/
-│   │   │   └── AUTOSAR_AP_SWS_Diagnostics_Rxx-11.md
-│   │   ├── AUTOSAR_AP_TPS_ManifestSpecification_R25-11/
-│   │   ├── AUTOSAR_CP_TPS_DiagnosticExtractTemplate_R25-11/
+│   │   ├── ISO_14229-1-2020/          # 文件名含空格的 PDF 转换时用无空格 stem
 │   │   └── _audit/                    # Markdown 审计快照（可选证据）
 │   └── analysis/                      # 人工/半自动分析报告（主要交付物）
 │       ├── AUTOSAR_AP_DM_*.md
 │       ├── evolution_summary.md|.json # 脚本自动生成，可覆盖
 │       └── canvases/                  # Cursor Canvas 可视化（若有）
-├── scripts/
+├── scripts/                           # 唯一 Python 项目根（勿在仓库顶层再建 .venv）
+│   ├── pyproject.toml / uv.lock       # uv 依赖锁（当前主要是 pypdf）
+│   ├── .venv/                         # 本地环境（gitignore；由 uv sync 生成）
 │   ├── mineru_batch_convert.ps1       # PDF → Markdown 批量转换
 │   ├── fix_dm_markdown.py             # MinerU 噪声清洗（可选后处理）
 │   ├── audit_dm_markdown.py           # Markdown vs PDF 审计
@@ -44,10 +45,12 @@ AP-DM/
 
 | 路径 | 角色 | 可否随意改 |
 |------|------|------------|
-| `autosar/dm/autosar/*.pdf` | 权威原文 | 否（只增补官方版本） |
+| `autosar/dm/autosar/*.pdf` | AUTOSAR 权威原文 | 否（只增补官方版本） |
+| `autosar/dm/iso/*.pdf` | 相关 ISO 原文 | 否（只增补已获授权副本） |
 | `autosar/dm/markdown/**` | PDF 机器转换结果 | 勿手工大改；需重转则用脚本覆盖 |
 | `autosar/dm/analysis/**` | 分析结论与报告 | 是（主工作区） |
-| `scripts/**` | 转换与分析工具 | 是（保持可复现） |
+| `scripts/pyproject.toml` / `uv.lock` | 脚本依赖契约 | 可改，但须 `uv lock` 并保持可复现 |
+| `scripts/**`（其余） | 转换与分析工具 | 是（保持可复现） |
 
 ## 权威性与引用规则
 
@@ -55,19 +58,21 @@ AP-DM/
 2. 引用需求时使用规范 ID：`[SWS_DM_xxxxx]`（五位数字）。
 3. MinerU（`parse_method=txt`）可能造成表格噪声、API 名粘连、目录缺失；**不得凭单次文本匹配断言“需求被删除”或“API 不存在”**，应多版本交叉核对。
 4. 分析文档须标明：数据来源路径、覆盖版本（如 R19–R25）、方法局限。
-5. 引用 PDF 时使用 `autosar/dm/autosar/<stem>.pdf`（或从 `analysis/` 相对路径 `../autosar/<stem>.pdf`）。
+5. 引用 AUTOSAR PDF 时使用 `autosar/dm/autosar/<stem>.pdf`（或从 `analysis/` 相对路径 `../autosar/<stem>.pdf`）；引用 ISO 时使用 `autosar/dm/iso/<文件名>.pdf`，并注明版本（如 ISO 14229-1:2020）。
 
 ## 常用工作流
 
 ### A. PDF → Markdown
 
 - 脚本：`scripts/mineru_batch_convert.ps1`
-- 默认 PDF 目录：`autosar/dm/autosar`
+- 默认 PDF 目录：`autosar/dm/autosar`；ISO 等非默认来源须显式 `-PdfDir`
 - 默认输出：`autosar/dm/markdown/<stem>/<stem>.md`（及图片资源）
 - 默认 API：`http://192.168.12.29:8000`（异步 `/tasks`）
 - 推荐参数：`backend=pipeline`，`parse_method=txt`，分页块转换（避免 OOM）
-- 环境：Windows PowerShell 5.1（`powershell.exe`）；页数统计用 `uv run --with pypdf`
+- 环境：Windows PowerShell 5.1（`powershell.exe`）；页数统计 / Python 脚本优先 `uv run --project scripts ...`
+- 文件名含空格的 PDF：先复制到 `.convert_*/` 下的无空格 stem 再转（该目录已 gitignore）
 - 可选后处理：加 `-PostProcess` 会调用 `fix_dm_markdown.py --stem <pdf stem>`（SWS 与 TPS 等均可；仅 SWS Diagnostics 会补丁缺失需求 ID）
+- 批次中间产物：`markdown/batch_run.log`、`batch_report.md`、`batch_report.json`（已 gitignore，勿提交）
 
 ```powershell
 # 本仓库默认环境为 Windows PowerShell 5.1（powershell.exe）。
@@ -76,6 +81,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/mineru_batch_con
 # 转换后顺带清洗 MinerU 噪声：
 # powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/mineru_batch_convert.ps1 -PostProcess
 # 一次转换超过 3 个 PDF 时需显式 -AllowMany（避免误清已有 markdown）
+# ISO 示例：
+# powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/mineru_batch_convert.ps1 -PdfDir autosar\dm\.convert_iso_14229
 ```
 
 勿默认改用 `hybrid-engine`（该环境曾因设备配置失败）。改 API 地址或转换策略须经用户确认。
@@ -83,7 +90,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/mineru_batch_con
 ### B. 跨版本演进统计
 
 ```powershell
-uv run scripts/analyze_dm_evolution.py
+uv run --project scripts scripts/analyze_dm_evolution.py
 ```
 
 - 输入：`autosar/dm/markdown/AUTOSAR_AP_SWS_Diagnostics_R*-11/*.md`
@@ -128,16 +135,22 @@ uv run scripts/analyze_dm_evolution.py
 ## 编码与运行约定
 
 - Shell：**PowerShell** 语法；路径用本机绝对或仓库相对路径均可，但脚本内默认相对仓库根。
-- Python：用 **`uv run`**，不用裸 `python` / `pip`（除非用户明确要求）。
+- Python / uv（硬约束）：
+  - 用 **`uv run`**，不用裸 `python` / `pip`（除非用户明确要求）。
+  - **唯一项目环境**在 `scripts/`：`pyproject.toml` + `uv.lock`；本地解释器为 `scripts/.venv`（`uv sync --project scripts`）。
+  - **禁止**在仓库顶层再建 `.venv` 或顶层 `pyproject.toml`（避免与 `scripts/` 双环境、双版本漂移）。
+  - 推荐：`uv run --project scripts <script>.py ...`；带 PEP 723 内联依赖的脚本仍可 `uv run scripts/<script>.py` 独立跑。
+  - IDE / 语言服务解释器应指向 `scripts\.venv\Scripts\python.exe`。
+  - 增删依赖：在 `scripts/` 下 `uv add` / `uv remove`，并提交更新后的 `uv.lock`。
 - 大文件：规范 Markdown 可达数百万字符；优先 `rg`/定向读取，避免整文件无目的载入上下文。
 - 不要提交密钥；MinerU 地址若变更，写进脚本参数或本地配置，勿写死到分析正文里当作规范内容。
-- 本地临时目录（`.tmp-mineru-test/`、`.work_*/`、`.convert_*/`、`*.bak`、`*.log`）已在 `.gitignore`，勿当交付物提交。
+- 本地临时/中间产物已在 `.gitignore`，**勿提交、勿当交付物**：`.tmp-mineru-test/`、`.work_*/`、`.convert_*/`、`*.bak`、`*.log`、`batch_report.md`、`batch_report.json`、`scripts/.venv/`。
 
 ## Agent 行为边界
 
 - **先检索再断言**：谈某服务/API/需求时，先在对应版本 Markdown 中定位，再写进报告。
 - **最小改动**：不重构无关脚本；不批量“美化”转换 Markdown。
-- **不把临时目录当交付物**：结论与图表应落在 `analysis/`。
+- **不把临时目录当交付物**：结论与图表应落在 `analysis/`；转换日志与 batch 报告可删。
 - **语言**：与用户及分析文档默认使用**简体中文**；规范专有名词、需求 ID、API 名保留英文原文。
 - **Git**：仅在用户明确要求时提交/推送。
 
@@ -145,7 +158,8 @@ uv run scripts/analyze_dm_evolution.py
 
 改完分析或脚本后自问：
 
-1. 引用的版本与路径是否正确（PDF 在 `autosar/dm/autosar/`，Markdown 在 `markdown/`）？  
+1. 引用的版本与路径是否正确（AUTOSAR PDF 在 `autosar/dm/autosar/`，ISO 在 `iso/`，Markdown 在 `markdown/`）？  
 2. 是否区分了“脚本统计结果”与“经 Change History 核实的结论”？  
-3. 是否误改了 `markdown/` 或 PDF？  
-4. 新结论是否链回已有演进/五大方向/SOVD/0x29 文档？  
+3. 是否误改了 `markdown/` 或 PDF？是否误提交了 `.convert_*` / `batch_*` / `.venv`？  
+4. Python 是否走 `uv run --project scripts`，且未在顶层重建 `.venv`？  
+5. 新结论是否链回已有演进/五大方向/SOVD/0x29 文档？  

@@ -1,0 +1,8 @@
+[project]
+name = "ap-dm-scripts"
+version = "0.1.0"
+description = "AUTOSAR AP-DM conversion and analysis helper scripts"
+requires-python = ">=3.11"
+dependencies = [
+    "pypdf>=6.15.0",
+]
