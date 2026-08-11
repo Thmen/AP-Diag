@@ -1,7 +1,7 @@
-"""Pack markdown <stem>/images/ into deterministic images.tar (Git LFS).
+"""Pack markdown <stem>/images/ into deterministic images.tar.xz (Git LFS, xz-6).
 
 Skips stems whose tree fingerprint already matches images.sha256 and whose
-images.tar exists, unless --force is set.
+images.tar.xz exists, unless --force is set.
 """
 from __future__ import annotations
 
@@ -9,13 +9,16 @@ import argparse
 import sys
 from pathlib import Path
 
-# Ensure scripts/ is importable when invoked as a file path.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from markdown_image_bundles import (
+    XZ_PRESET,
+    Timed,
+    format_duration,
     iter_stem_bundles,
     pack_images_tar,
     read_fingerprint,
+    remove_legacy_plain_tar,
     repo_rel,
     tree_fingerprint,
     write_fingerprint,
@@ -39,14 +42,17 @@ def pack_one(stem: str, *, force: bool, dry_run: bool) -> str:
     action = "PACK" if not dry_run else "DRY"
     if dry_run:
         reason = "force" if force else ("new/changed" if recorded != digest else "missing tar")
-        return f"{action}  {stem}: would write {count} files ({reason})"
+        return f"{action}  {stem}: would write {count} files xz-{XZ_PRESET} ({reason})"
 
-    n = pack_images_tar(bundle.images_dir, bundle.tar_path)
-    write_fingerprint(bundle.fingerprint_path, digest, file_count=n)
+    with Timed() as t:
+        n = pack_images_tar(bundle.images_dir, bundle.tar_path)
+        write_fingerprint(bundle.fingerprint_path, digest, file_count=n)
+        remove_legacy_plain_tar(bundle)
     size_mb = bundle.tar_path.stat().st_size / (1024 * 1024)
     return (
         f"PACK  {stem}: {n} files -> {repo_rel(bundle.tar_path)} "
-        f"({size_mb:.1f} MiB, sha256={digest[:12]}…)"
+        f"({size_mb:.1f} MiB, xz-{XZ_PRESET}, {format_duration(t.elapsed)}, "
+        f"sha256={digest[:12]}…)"
     )
 
 

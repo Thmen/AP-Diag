@@ -1,7 +1,7 @@
-"""Unpack markdown <stem>/images.tar into local images/ (gitignored).
+"""Unpack markdown <stem>/images.tar.xz into local images/ (gitignored).
 
 Skips stems whose local images/ fingerprint already matches images.sha256,
-unless --force is set.
+unless --force is set. Also accepts legacy uncompressed images.tar.
 """
 from __future__ import annotations
 
@@ -13,6 +13,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from markdown_image_bundles import (
     TAR_NAME,
+    Timed,
+    format_duration,
     iter_stem_bundles,
     read_fingerprint,
     repo_rel,
@@ -21,9 +23,18 @@ from markdown_image_bundles import (
 )
 
 
+def resolve_bundle_path(bundle) -> Path | None:
+    if bundle.tar_path.is_file():
+        return bundle.tar_path
+    if bundle.legacy_tar_path.is_file():
+        return bundle.legacy_tar_path
+    return None
+
+
 def unpack_one(stem: str, *, force: bool, dry_run: bool) -> str:
     bundle = iter_stem_bundles(stem=stem)[0]
-    if not bundle.tar_path.is_file():
+    archive = resolve_bundle_path(bundle)
+    if archive is None:
         return f"SKIP  {stem}: missing {TAR_NAME}"
 
     recorded = read_fingerprint(bundle.fingerprint_path)
@@ -34,18 +45,23 @@ def unpack_one(stem: str, *, force: bool, dry_run: bool) -> str:
 
     action = "UNPACK" if not dry_run else "DRY"
     if dry_run:
-        return f"{action}  {stem}: would extract {repo_rel(bundle.tar_path)}"
+        return f"{action}  {stem}: would extract {repo_rel(archive)}"
 
-    n = unpack_images_tar(bundle.tar_path, bundle.images_dir, clean=True)
+    with Timed() as t:
+        n = unpack_images_tar(archive, bundle.images_dir, clean=True)
     if recorded:
         current, _ = tree_fingerprint(bundle.images_dir)
         if current != recorded:
             return (
-                f"WARN  {stem}: extracted {n} files but fingerprint mismatch "
+                f"WARN  {stem}: extracted {n} files in {format_duration(t.elapsed)} "
+                f"but fingerprint mismatch "
                 f"(got {current[:12]}…, expected {recorded[:12]}…). "
                 f"Re-run pack or refresh images.sha256."
             )
-    return f"UNPACK  {stem}: {n} files -> {repo_rel(bundle.images_dir)}"
+    return (
+        f"UNPACK  {stem}: {n} files -> {repo_rel(bundle.images_dir)} "
+        f"({format_duration(t.elapsed)})"
+    )
 
 
 def main() -> int:
@@ -54,7 +70,7 @@ def main() -> int:
         "--stem",
         action="append",
         dest="stems",
-        help="Only unpack this stem (repeatable). Default: all stems with images.tar",
+        help="Only unpack this stem (repeatable). Default: all stems with image archives",
     )
     parser.add_argument(
         "--force",
@@ -71,10 +87,14 @@ def main() -> int:
     if args.stems:
         stems = args.stems
     else:
-        stems = [b.stem for b in iter_stem_bundles() if b.tar_path.is_file()]
+        stems = [
+            b.stem
+            for b in iter_stem_bundles()
+            if b.tar_path.is_file() or b.legacy_tar_path.is_file()
+        ]
 
     if not stems:
-        print("No stems with images.tar found.", file=sys.stderr)
+        print(f"No stems with {TAR_NAME} (or legacy images.tar) found.", file=sys.stderr)
         return 1
 
     unpacked = skipped = warnings = 0
