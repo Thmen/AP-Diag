@@ -58,6 +58,7 @@
 - 总体演进背景见 [AUTOSAR AP DM Evolution Report R19–R25](./AUTOSAR_AP_DM_Evolution_Report_R19-R25.md)。
 - R25 相对 R19 的五大方向与工作量框架见 [AUTOSAR AP DM R25 vs R19 Five Directions](./AUTOSAR_AP_DM_R25_vs_R19_Five_Directions.md)。
 - DEXT / AP Manifest 配置项清单见 [AUTOSAR AP DM R25 0x29 DEXT Manifest Config](./AUTOSAR_AP_DM_R25_0x29_DEXT_Manifest_Config.md)。
+- ISO 14229-1:2020 §10.6 + B.5 全量中文译本见 [ISO_14229-1_2020_UDS_0x29_Authentication_Full_Spec.md](./ISO_14229-1_2020_UDS_0x29_Authentication_Full_Spec.md)（含 ACR；本文仅 APCE 子集）。
 - 本文不复制上述报告的宏观叙事，只展开 0x29 的实现边界、AR 和测试闭环。
 
 ## 1. 目的、方法与证据规则
