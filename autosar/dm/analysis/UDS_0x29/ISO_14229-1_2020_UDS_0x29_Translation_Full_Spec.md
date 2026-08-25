@@ -10,11 +10,11 @@
 | 覆盖范围 | §10.6（含 10.6.1–10.6.8）+ Annex B.5 |
 | 权威原文 | [ISO 14229-1-2020.pdf](../iso/ISO%2014229-1-2020.pdf)（PDF 印页约 p.59–107；B.5 约 p.403–404） |
 | 检索载体 | [ISO_14229-1-2020.md](../markdown/ISO_14229-1-2020/ISO_14229-1-2020.md) |
-| 交叉链接 | AUTOSAR APCE 子集实现边界见 [AUTOSAR_AP_DM_R25_UDS_0x29_Authentication_Spec.md](./AUTOSAR_AP_DM_R25_UDS_0x29_Authentication_Spec.md) |
+| 交叉链接 | AUTOSAR APCE 子集实现边界见 [AUTOSAR_AP_DM_R25_UDS_0x29_APCE_Spec.md](./AUTOSAR_AP_DM_R25_UDS_0x29_APCE_Spec.md)；ACR 单向实现见 [AUTOSAR_AP_DM_R25_UDS_0x29_ACR_Unidirectional_Spec.md](./AUTOSAR_AP_DM_R25_UDS_0x29_ACR_Unidirectional_Spec.md) |
 | 翻译约定 | 叙述用简体中文；服务名/子功能名/参数名/Mnemonic/NRC 名保留英文；十六进制写作 `XX₁₆` |
 | 插图 | 图 8–11 引用 `../markdown/ISO_14229-1-2020/images/`（需本地已 unpack） |
 | 分析日期 | 2026-08-11 |
-| 最近 PDF 校对 | 2026-08-11（对照 `ISO 14229-1-2020.pdf` 印页 p.59–107、B.5 p.403–404） |
+| 最近 PDF 校对 | 2026-08-25（表 101–118 逐字节补全，对照 `ISO 14229-1-2020.pdf` 印页 p.94–107；此前 2026-08-11 覆盖 p.59–107、B.5 p.403–404） |
 
 ## 目录
 
@@ -764,30 +764,91 @@ SubFunction 参数 `authenticationTask` 向服务器指示应执行的明确任�
   - 内容为模板内 TLV `7F4E₁₆`；签名为模板内 TLV `5F37₁₆`  
   > **NOTE 2**：本示例中认证令牌有效（格式、内容与签名均正确）。PDF 正文写作 ISO/IEC **7618**-8，按领域惯例应为 **7816**-8。
 
-#### 10.6.8.4.2–4 步骤报文
+#### 10.6.8.4.2 Step #1：请求 Authentication Configuration
 
-**表 101 / 102**：同表 87/88 结构；表 102 的 `returnValue = 03₁₆`（AuthenticationConfiguration ACR with asymmetric cryptography）。PDF 示例 Mnemonic 写作 `RV_ACACR`（相对 B.5 的 `ACACRAC` 为截断写法）。
-
-**表 103 — 请求挑战**：`29₁₆` / `05₁₆` / COCO `00₁₆` / `algorithmIndicator` 16 字节 = `06 09 2A 86 48 86 F7 0D 01 01 0A 00 00 00 00 00₁₆`（表中以 `06₁₆`…`0A₁₆`…`00₁₆` 示意）。
-
-**表 104 — 挑战响应**：`69₁₆` / `05₁₆` / `returnValue=00₁₆`（Request accepted，`RV_RA`）/ 回显 AI / `lengthOfChallengeServer=0040₁₆` / challengeServer 64 字节（首尾示例 `AA₁₆`:`44₁₆`）/ `lengthOfNeededAdditionalParameter=0000₁₆`。
-
-**表 105 — 验证 POWN（按 PDF）**
+**表 101 — 请求**（client → server）
 
 | A_Data | Description | Byte value | Mnemonic |
 |---|---|---|---|
 | #1 | Authentication Request SID | `29₁₆` | ARS |
-| #2 | verifyProofOfOwnershipUnidirectional | `06₁₆` | LEV_AT_VPOWNU |
-| #3 : #18 | algorithmIndicator（同表 103） | `06₁₆`…`0A₁₆`…`00₁₆` | AI |
-| #19 / #20 | lengthOfProofOfOwnershipClient | `01₁₆` / `50₁₆` | LPOWNCL |
-| #21 : #356 | proofOfOwnershipClient\[1:336\]（TLV：`7F21₁₆` 模板，内含 `7F4E₁₆` 内容与 `5F37₁₆` 签名） | `7F 21 82 01 4B 7F 4E 44 … 5F 37 82 01 00 …` | POWNCL |
-| #357 / #358 | lengthOfChallengeClient | `00₁₆` / `20₁₆` | LOCHCL |
-| #359 : #390 | challengeClient\[1:32\] | `AA₁₆` : `44₁₆` | CHCL |
-| #391 / #392 | lengthOfAdditionalParameter | `00₁₆` / `00₁₆` | LOAP |
+| #2 | authenticationTask = authenticationConfiguration | `08₁₆` | LEV_AT_AC |
 
+**表 102 — 肯定响应**（server → client）
+
+| A_Data | Description | Byte value | Mnemonic |
+|---|---|---|---|
+| #1 | Authentication Response SID | `69₁₆` | ARS |
+| #2 | authenticationTask = authenticationConfiguration | `08₁₆` | LEV_AT_AC |
+| #3 | returnValue = AuthenticationConfiguration ACR with asymmetric cryptography | `03₁₆` | RV_ACACR |
+
+> **译本注**：PDF 示例 Mnemonic 写作 `RV_ACACR`；附录 B.5 对同一取值用 `ACACRAC`。
+
+#### 10.6.8.4.3 Step #2：请求挑战
+
+**表 103 — 请求**（client → server）
+
+| A_Data | Description | Byte value | Mnemonic |
+|---|---|---|---|
+| #1 | Authentication Request SID | `29₁₆` | ARS |
+| #2 | authenticationTask = requestChallengeForAuthentication | `05₁₆` | LEV_AT_RCFA |
+| #3 | communicationConfiguration = no secure communication | `00₁₆` | COCO |
+| #4 : #19 | algorithmIndicator\[byte#1:16\] | `06₁₆` : `00₁₆`（byte#11 = `0A₁₆`） | AI |
+
+> AI 完整 16 字节 = `06 09 2A 86 48 86 F7 0D 01 01 0A 00 00 00 00 00₁₆`（RSASSA-PSS OID）。PDF 表中仅标注 byte#1 / byte#11 / byte#16 三个锚点。
+
+**表 104 — 肯定响应**（server → client）
+
+| A_Data | Description | Byte value | Mnemonic |
+|---|---|---|---|
+| #1 | Authentication Response SID | `69₁₆` | ARS |
+| #2 | authenticationTask = requestChallengeForAuthentication | `05₁₆` | LEV_AT_RCFA |
+| #3 | returnValue = Request accepted | `00₁₆` | RV_RA |
+| #4 : #19 | algorithmIndicator\[byte#1:16\] | `06₁₆` : `00₁₆`（byte#11 = `0A₁₆`） | AI |
+| #20 / #21 | lengthOfChallengeServer\[byte#1 / byte#2\] | `00₁₆` / `40₁₆` | LOCHSE |
+| #22 : #85 | challengeServer\[byte#1:64\] | `AA₁₆` : `44₁₆` | CHSE |
+| #86 / #87 | lengthOfNeededAdditionalParameter\[byte#1 / byte#2\] | `00₁₆` / `00₁₆` | LONAP |
+
+#### 10.6.8.4.4 Step #3：验证 Proof of Ownership
+
+**表 105 — 请求**（client → server）
+
+| A_Data | Description | Byte value | Mnemonic |
+|---|---|---|---|
+| #1 | Authentication Request SID | `29₁₆` | ARS |
+| #2 | authenticationTask = verifyProofOfOwnershipUnidirectional | `06₁₆` | LEV_AT_VPOWNU |
+| #3 : #18 | algorithmIndicator\[byte#1:16\] | `06₁₆` : `00₁₆`（byte#11 = `0A₁₆`） | AI |
+| #19 / #20 | lengthOfProofOfOwnershipClient\[byte#1 / byte#2\] | `01₁₆` / `50₁₆` | LPOWNCL |
+| #21 | proofOfOwnershipClient\[byte#1\] | `7F₁₆` | POWNCL |
+| #22 | proofOfOwnershipClient\[byte#2\] | `21₁₆` | |
+| #23 | proofOfOwnershipClient\[byte#3\] | `82₁₆` | |
+| #24 | proofOfOwnershipClient\[byte#4\] | `01₁₆` | |
+| #25 | proofOfOwnershipClient\[byte#5\] | `4B₁₆` | |
+| #26 | proofOfOwnershipClient\[byte#6\] | `7F₁₆` | |
+| #27 | proofOfOwnershipClient\[byte#7\] | `4E₁₆` | |
+| #28 | proofOfOwnershipClient\[byte#8\] | `44₁₆` | |
+| #29 : #95 | proofOfOwnershipClient\[byte#9:75\] | `00₁₆`–`FF₁₆` | |
+| #96 | proofOfOwnershipClient\[byte#76\] | `5F₁₆` | |
+| #97 | proofOfOwnershipClient\[byte#77\] | `37₁₆` | |
+| #98 | proofOfOwnershipClient\[byte#78\] | `82₁₆` | |
+| #99 | proofOfOwnershipClient\[byte#79\] | `01₁₆` | |
+| #100 | proofOfOwnershipClient\[byte#80\] | `00₁₆` | |
+| #101 : #356 | proofOfOwnershipClient\[byte#81:336\] | `00₁₆`–`FF₁₆` | |
+| #357 / #358 | lengthOfChallengeClient\[byte#1 / byte#2\] | `00₁₆` / `20₁₆` | LOCHCL |
+| #359 : #390 | challengeClient\[byte#1:32\] | `AA₁₆` : `44₁₆` | CHCL |
+| #391 / #392 | lengthOfAdditionalParameter\[byte#1 / byte#2\] | `00₁₆` / `00₁₆` | LOAP |
+
+> **TLV 结构对照**：`7F 21`＝认证令牌模板；`82 01 4B`＝长度 331；`7F 4E 44`＝令牌内容（byte#6–#8）；`5F 37 82 01 00`＝签名 TLV（byte#76–#80，长度 256）。  
 > **译本注（校对）**：此前摘要误写为“无 challengeClient”；PDF 表 105 明确带 32 字节 `challengeClient`（`0020₁₆`），仅附加参数长度为 0。
 
-**表 106 — 成功响应**：`69₁₆` / `06₁₆` / `returnValue=12₁₆`（Ownership verified, Authentication complete，`RV_OVAC`）/ 回显 AI / `lengthOfSessionKeyInfo=0000₁₆`。
+**表 106 — 肯定响应**（server → client）
+
+| A_Data | Description | Byte value | Mnemonic |
+|---|---|---|---|
+| #1 | Authentication Response SID | `69₁₆` | ARS |
+| #2 | authenticationTask = verifyProofOfOwnershipUnidirectional | `06₁₆` | LEV_AT_VPOWNU |
+| #3 | returnValue = Ownership verified, Authentication complete | `12₁₆` | RV_OVAC |
+| #4 : #19 | algorithmIndicator\[byte#1:16\] | `06₁₆` : `00₁₆`（byte#11 = `0A₁₆`） | AI |
+| #20 / #21 | lengthOfSessionKeyInfo\[byte#1 / byte#2\] | `00₁₆` / `00₁₆` | LOSKI |
 
 ### 10.6.8.5 示例 #5 — ACR 非对称、不建立会话密钥（失败路径）
 
@@ -799,11 +860,68 @@ SubFunction 参数 `authenticationTask` 向服务器指示应执行的明确任�
 > 前提另写：正响应中可用 `returnValue = 21₁₆` 指示无效签名（整车厂专用范围；Mnemonic 亦厂商特定）。**NOTE 2**  
 > **表 110 实际给出否定响应** NRC `51₁₆`（`invalidSignature` / `NRC_CVFIS`）。即：前提中的 `21₁₆` 与示例报文表 110 并非同一条路径——实现以 OEM 诊断规范选择“正响应 RV”或“NRC”为准。
 
-#### 步骤
+#### 10.6.8.5.2 Step #1：请求挑战
 
-**表 107 / 108**：同表 103 / 104（请求挑战并获 challenge）。  
-**表 109**：同表 105 布局（含 32 字节 challengeClient），但 POWN 签名无效。  
-**表 110 — 否定响应**：`7F₁₆` / `29₁₆` / `51₁₆`（invalidSignature，`NRC_CVFIS`）。
+**表 107 — 请求**（client → server）
+
+| A_Data | Description | Byte value | Mnemonic |
+|---|---|---|---|
+| #1 | Authentication Request SID | `29₁₆` | ARS |
+| #2 | authenticationTask = requestChallengeForAuthentication | `05₁₆` | LEV_AT_RCFA |
+| #3 | communicationConfiguration = no secure communication | `00₁₆` | COCO |
+| #4 : #19 | algorithmIndicator\[byte#1:16\] | `06₁₆` : `00₁₆`（byte#11 = `0A₁₆`） | AI |
+
+**表 108 — 肯定响应**（server → client）
+
+| A_Data | Description | Byte value | Mnemonic |
+|---|---|---|---|
+| #1 | Authentication Response SID | `69₁₆` | ARS |
+| #2 | authenticationTask = requestChallengeForAuthentication | `05₁₆` | LEV_AT_RCFA |
+| #3 | returnValue = Request accepted | `00₁₆` | RV_RA |
+| #4 : #19 | algorithmIndicator\[byte#1:16\] | `06₁₆` : `00₁₆`（byte#11 = `0A₁₆`） | AI |
+| #20 / #21 | lengthOfChallengeServer\[byte#1 / byte#2\] | `00₁₆` / `40₁₆` | LOCHSE |
+| #22 : #85 | challengeServer\[byte#1:64\] | `AA₁₆` : `44₁₆` | CHSE |
+| #86 / #87 | lengthOfNeededAdditionalParameter\[byte#1 / byte#2\] | `00₁₆` / `00₁₆` | LONAP |
+
+#### 10.6.8.5.3 Step #2：验证 Proof of Ownership
+
+**表 109 — 请求**（client → server）
+
+| A_Data | Description | Byte value | Mnemonic |
+|---|---|---|---|
+| #1 | Authentication Request SID | `29₁₆` | ARS |
+| #2 | authenticationTask = verifyProofOfOwnershipUnidirectional | `06₁₆` | LEV_AT_VPOWNU |
+| #3 : #18 | algorithmIndicator\[byte#1:16\] | `06₁₆` : `00₁₆`（byte#11 = `0A₁₆`） | AI |
+| #19 / #20 | lengthOfProofOfOwnershipClient\[byte#1 / byte#2\] | `01₁₆` / `50₁₆` | LPOWNCL |
+| #21 | proofOfOwnershipClient\[byte#1\] | `7F₁₆` | POWNCL |
+| #22 | proofOfOwnershipClient\[byte#2\] | `21₁₆` | |
+| #23 | proofOfOwnershipClient\[byte#3\] | `82₁₆` | |
+| #24 | proofOfOwnershipClient\[byte#4\] | `01₁₆` | |
+| #25 | proofOfOwnershipClient\[byte#5\] | `4B₁₆` | |
+| #26 | proofOfOwnershipClient\[byte#6\] | `7F₁₆` | |
+| #27 | proofOfOwnershipClient\[byte#7\] | `4E₁₆` | |
+| #28 | proofOfOwnershipClient\[byte#8\] | `44₁₆` | |
+| #29 : #95 | proofOfOwnershipClient\[byte#9:75\] | `00₁₆`–`FF₁₆` | |
+| #96 | proofOfOwnershipClient\[byte#76\] | `5F₁₆` | |
+| #97 | proofOfOwnershipClient\[byte#77\] | `37₁₆` | |
+| #98 | proofOfOwnershipClient\[byte#78\] | `82₁₆` | |
+| #99 | proofOfOwnershipClient\[byte#79\] | `01₁₆` | |
+| #100 | proofOfOwnershipClient\[byte#80\] | `00₁₆` | |
+| #101 : #356 | proofOfOwnershipClient\[byte#81:336\] | `00₁₆`–`FF₁₆` | |
+| #357 / #358 | lengthOfChallengeClient\[byte#1 / byte#2\] | `00₁₆` / `20₁₆` | LOCHCL |
+| #359 : #390 | challengeClient\[byte#1:32\] | `AA₁₆` : `44₁₆` | CHCL |
+| #391 / #392 | lengthOfAdditionalParameter\[byte#1 / byte#2\] | `00₁₆` / `00₁₆` | LOAP |
+
+> **ISO 印本问题**：PDF 表 109 末两行 A_Data 印作 `#390 / #391`，与上一行 `challengeClient[byte#32] = #390` 冲突；按表 105 及长度累加应为 **`#391 / #392`**。  
+> 字节布局与表 105 完全相同，差别仅在于本例 POWN 内的签名不正确。
+
+**表 110 — 否定响应**（server → client）
+
+| A_Data | Description | Byte value | Mnemonic |
+|---|---|---|---|
+| #1 | Negative Response SID | `7F₁₆` | SIDRSIDNRQ |
+| #2 | Authentication Request SID | `29₁₆` | ARS |
+| #3 | responseCode = invalidSignature | `51₁₆` | NRC_CVFIS |
 
 ### 10.6.8.6 示例 #6 — ACR 对称、不建立会话密钥（成功路径）
 
@@ -818,23 +936,88 @@ SubFunction 参数 `authenticationTask` 向服务器指示应执行的明确任�
 
 #### 10.6.8.6.2 Step #1：请求挑战
 
-**表 111**：`29₁₆` / `05₁₆` / COCO `00₁₆` / AI（以 `06₁₆`…`02₁₆`…`00₁₆` 示意）。
+**表 111 — 请求**（client → server）
 
-**表 112 — 肯定响应**（服务器返回 16 字节 challengeServer）
+| A_Data | Description | Byte value | Mnemonic |
+|---|---|---|---|
+| #1 | Authentication Request SID | `29₁₆` | ARS |
+| #2 | authenticationTask = requestChallengeForAuthentication | `05₁₆` | LEV_AT_RCFA |
+| #3 | communicationConfiguration = no secure communication | `00₁₆` | COCO |
+| #4 : #19 | algorithmIndicator\[byte#1:16\] | `06₁₆` : `00₁₆`（byte#11 = `02₁₆`） | AI |
 
-| A_Data | Description | Byte value |
-|---|---|---|
-| #1–#3 | `69₁₆` / `05₁₆` / `returnValue=00₁₆`（Request accepted） | |
-| #4–#19 | algorithmIndicator（回显） | |
-| #20 / #21 | lengthOfChallengeServer | `00₁₆` / `10₁₆` |
-| #22–#37 | challengeServer\[1:16\] | `32 43 F6 A8 88 5A 30 8D 31 31 98 A2 E0 37 07 34₁₆` |
-| #38 / #39 | lengthOfNeededAdditionalParameter | `00₁₆` / `00₁₆` |
+**表 112 — 肯定响应**（server → client；返回 16 字节 challengeServer）
+
+| A_Data | Description | Byte value | Mnemonic |
+|---|---|---|---|
+| #1 | Authentication Response SID | `69₁₆` | ARS |
+| #2 | authenticationTask = requestChallengeForAuthentication | `05₁₆` | LEV_AT_RCFA |
+| #3 | returnValue = Request accepted | `00₁₆` | RV_RA |
+| #4 : #19 | algorithmIndicator\[byte#1:16\] | `06₁₆` : `00₁₆`（byte#11 = `02₁₆`） | AI |
+| #20 | lengthOfChallengeServer\[byte#1\]（high byte） | `00₁₆` | LOCHSE_HB |
+| #21 | lengthOfChallengeServer\[byte#2\]（low byte） | `10₁₆` | LOCHSE_LB |
+| #22 | challengeServer\[byte#1\] | `32₁₆` | CHSE |
+| #23 | challengeServer\[byte#2\] | `43₁₆` | |
+| #24 | challengeServer\[byte#3\] | `F6₁₆` | |
+| #25 | challengeServer\[byte#4\] | `A8₁₆` | |
+| #26 | challengeServer\[byte#5\] | `88₁₆` | |
+| #27 | challengeServer\[byte#6\] | `5A₁₆` | |
+| #28 | challengeServer\[byte#7\] | `30₁₆` | |
+| #29 | challengeServer\[byte#8\] | `8D₁₆` | |
+| #30 | challengeServer\[byte#9\] | `31₁₆` | |
+| #31 | challengeServer\[byte#10\] | `31₁₆` | |
+| #32 | challengeServer\[byte#11\] | `98₁₆` | |
+| #33 | challengeServer\[byte#12\] | `A2₁₆` | |
+| #34 | challengeServer\[byte#13\] | `E0₁₆` | |
+| #35 | challengeServer\[byte#14\] | `37₁₆` | |
+| #36 | challengeServer\[byte#15\] | `07₁₆` | |
+| #37 | challengeServer\[byte#16\] | `34₁₆` | |
+| #38 | lengthOfNeededAdditionalParameter\[byte#1\]（high byte） | `00₁₆` | LONAP_HB |
+| #39 | lengthOfNeededAdditionalParameter\[byte#2\]（low byte） | `00₁₆` | LONAP_LB |
+
+> challengeServer 连写 = `32 43 F6 A8 88 5A 30 8D 31 31 98 A2 E0 37 07 34₁₆`。
 
 #### 10.6.8.6.3 Step #2：验证 POWN（正确）
 
-**表 113 — 请求**：`29₁₆` / `06₁₆` / AI / `lengthOfProofOfOwnershipClient=0010₁₆` / POWN 16 字节 = `39 25 84 1D 02 DC 09 FB DC 11 85 97 19 6A 0B 32₁₆` / `lengthOfChallengeClient=0000₁₆` / `lengthOfAdditionalParameter=0000₁₆`。
+**表 113 — 请求**（client → server）
 
-**表 114 — 肯定响应**：`69₁₆` / `06₁₆` / `returnValue=12₁₆`（Ownership verified, Authentication complete）/ 回显 AI / `lengthOfSessionKeyInfo=0000₁₆`。
+| A_Data | Description | Byte value | Mnemonic |
+|---|---|---|---|
+| #1 | Authentication Request SID | `29₁₆` | ARS |
+| #2 | authenticationTask = verifyProofOfOwnershipUnidirectional | `06₁₆` | LEV_AT_VPOWNU |
+| #3 : #18 | algorithmIndicator\[byte#1:16\] | `06₁₆` : `00₁₆`（byte#11 = `02₁₆`） | AI |
+| #19 | lengthOfProofOfOwnershipClient\[byte#1\]（high byte） | `00₁₆` | LPOWNCL_HB |
+| #20 | lengthOfProofOfOwnershipClient\[byte#2\]（low byte） | `10₁₆` | LPOWNCL_LB |
+| #21 | proofOfOwnershipClient\[byte#1\] | `39₁₆` | POWNCL |
+| #22 | proofOfOwnershipClient\[byte#2\] | `25₁₆` | |
+| #23 | proofOfOwnershipClient\[byte#3\] | `84₁₆` | |
+| #24 | proofOfOwnershipClient\[byte#4\] | `1D₁₆` | |
+| #25 | proofOfOwnershipClient\[byte#5\] | `02₁₆` | |
+| #26 | proofOfOwnershipClient\[byte#6\] | `DC₁₆` | |
+| #27 | proofOfOwnershipClient\[byte#7\] | `09₁₆` | |
+| #28 | proofOfOwnershipClient\[byte#8\] | `FB₁₆` | |
+| #29 | proofOfOwnershipClient\[byte#9\] | `DC₁₆` | |
+| #30 | proofOfOwnershipClient\[byte#10\] | `11₁₆` | |
+| #31 | proofOfOwnershipClient\[byte#11\] | `85₁₆` | |
+| #32 | proofOfOwnershipClient\[byte#12\] | `97₁₆` | |
+| #33 | proofOfOwnershipClient\[byte#13\] | `19₁₆` | |
+| #34 | proofOfOwnershipClient\[byte#14\] | `6A₁₆` | |
+| #35 | proofOfOwnershipClient\[byte#15\] | `0B₁₆` | |
+| #36 | proofOfOwnershipClient\[byte#16\] | `32₁₆` | |
+| #37 / #38 | lengthOfChallengeClient\[byte#1 / byte#2\] | `00₁₆` / `00₁₆` | LOCHCL |
+| #39 | lengthOfAdditionalParameter\[byte#1\]（high byte） | `00₁₆` | LOAP_HB |
+| #40 | lengthOfAdditionalParameter\[byte#2\]（low byte） | `00₁₆` | LOAP_LB |
+
+> POWN 连写 = `39 25 84 1D 02 DC 09 FB DC 11 85 97 19 6A 0B 32₁₆`，即用密钥 `2B7E151628AED2A6ABF7158809CF4F3C₁₆` 对 challengeServer 做 AES 加密的结果。
+
+**表 114 — 肯定响应**（server → client）
+
+| A_Data | Description | Byte value | Mnemonic |
+|---|---|---|---|
+| #1 | Authentication Response SID | `69₁₆` | ARS |
+| #2 | authenticationTask = verifyProofOfOwnershipUnidirectional | `06₁₆` | LEV_AT_VPOWNU |
+| #3 | returnValue = Ownership verified, Authentication complete | `12₁₆` | RV_OVAC |
+| #4 : #19 | algorithmIndicator\[byte#1:16\] | `06₁₆` : `00₁₆`（byte#11 = `02₁₆`） | AI |
+| #20 / #21 | lengthOfSessionKeyInfo\[byte#1 / byte#2\] | `00₁₆` / `00₁₆` | LOSKI |
 
 ### 10.6.8.7 示例 #7 — ACR 对称、不建立会话密钥（失败路径）
 
@@ -850,11 +1033,67 @@ SubFunction 参数 `authenticationTask` 向服务器指示应执行的明确任�
 
 失败原因（PDF 原文）：**客户端 AES 密钥与服务器密钥不匹配**（因而 POWN 校验失败）。
 
-#### 步骤
+> **译本注**：示例 #7 前提未重复给出 AES 密钥值（示例 #6 的 NOTE 才有 `2B7E…4F3C₁₆`）。
 
-**表 115 / 116**：同表 111 / 112（请求并获得 16 字节 challenge）。  
-**表 117**：同表 113 布局，但 POWN 由错误密钥算出。  
-**表 118 — 否定响应**
+#### 10.6.8.7.2 Step #1：请求挑战
+
+**表 115 — 请求**（client → server）
+
+| A_Data | Description | Byte value | Mnemonic |
+|---|---|---|---|
+| #1 | Authentication Request SID | `29₁₆` | ARS |
+| #2 | authenticationTask = requestChallengeForAuthentication | `05₁₆` | LEV_AT_RCFA |
+| #3 | communicationConfiguration = no secure communication | `00₁₆` | COCO |
+| #4 : #19 | algorithmIndicator\[byte#1:16\] | `06₁₆` : `00₁₆`（byte#11 = `02₁₆`） | AI |
+
+**表 116 — 肯定响应**（server → client；返回 16 字节 challengeServer）
+
+| A_Data | Description | Byte value | Mnemonic |
+|---|---|---|---|
+| #1 | Authentication Response SID | `69₁₆` | ARS |
+| #2 | authenticationTask = requestChallengeForAuthentication | `05₁₆` | LEV_AT_RCFA |
+| #3 | returnValue = Request accepted | `00₁₆` | RV_RA |
+| #4 : #19 | algorithmIndicator\[byte#1:16\] | `06₁₆` : `00₁₆`（byte#11 = `02₁₆`） | AI |
+| #20 | lengthOfChallengeServer\[byte#1\]（high byte） | `00₁₆` | LOCHSE_HB |
+| #21 | lengthOfChallengeServer\[byte#2\]（low byte） | `10₁₆` | LOCHSE_LB |
+| #22 : #37 | challengeServer\[byte#1:16\] | `32 43 F6 A8 88 5A 30 8D 31 31 98 A2 E0 37 07 34₁₆`（逐字节同表 112） | CHSE |
+| #38 | lengthOfNeededAdditionalParameter\[byte#1\]（high byte） | `00₁₆` | LONAP_HB |
+| #39 | lengthOfNeededAdditionalParameter\[byte#2\]（low byte） | `00₁₆` | LONAP_LB |
+
+#### 10.6.8.7.3 Step #2：验证 POWN（无效）
+
+**表 117 — 请求**（client → server）
+
+| A_Data | Description | Byte value | Mnemonic |
+|---|---|---|---|
+| #1 | Authentication Request SID | `29₁₆` | ARS |
+| #2 | authenticationTask = verifyProofOfOwnershipUnidirectional | `06₁₆` | LEV_AT_VPOWNU |
+| #3 : #18 | algorithmIndicator\[byte#1:16\] | `06₁₆` : `00₁₆`（byte#11 = `02₁₆`） | AI |
+| #19 | lengthOfProofOfOwnershipClient\[byte#1\]（high byte） | `00₁₆` | LPOWNCL_HB |
+| #20 | lengthOfProofOfOwnershipClient\[byte#2\]（low byte） | `10₁₆` | LPOWNCL_LB |
+| #21 | proofOfOwnershipClient\[byte#1\] | `01₁₆` | POWNCL |
+| #22 | proofOfOwnershipClient\[byte#2\] | `02₁₆` | |
+| #23 | proofOfOwnershipClient\[byte#3\] | `03₁₆` | |
+| #24 | proofOfOwnershipClient\[byte#4\] | `04₁₆` | |
+| #25 | proofOfOwnershipClient\[byte#5\] | `05₁₆` | |
+| #26 | proofOfOwnershipClient\[byte#6\] | `06₁₆` | |
+| #27 | proofOfOwnershipClient\[byte#7\] | `07₁₆` | |
+| #28 | proofOfOwnershipClient\[byte#8\] | `08₁₆` | |
+| #29 | proofOfOwnershipClient\[byte#9\] | `09₁₆` | |
+| #30 | proofOfOwnershipClient\[byte#10\] | `0A₁₆` | |
+| #31 | proofOfOwnershipClient\[byte#11\] | `0B₁₆` | |
+| #32 | proofOfOwnershipClient\[byte#12\] | `0C₁₆` | |
+| #33 | proofOfOwnershipClient\[byte#13\] | `0D₁₆` | |
+| #34 | proofOfOwnershipClient\[byte#14\] | `0E₁₆` | |
+| #35 | proofOfOwnershipClient\[byte#15\] | `0F₁₆` | |
+| #36 | proofOfOwnershipClient\[byte#16\] | `11₁₆` | |
+| #37 / #38 | lengthOfChallengeClient\[byte#1 / byte#2\] | `00₁₆` / `00₁₆` | LOCHCL |
+| #39 | lengthOfAdditionalParameter\[byte#1\]（high byte） | `00₁₆` | LOAP_HB |
+| #40 | lengthOfAdditionalParameter\[byte#2\]（low byte） | `00₁₆` | LOAP_LB |
+
+> POWN 连写 = `01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F 11₁₆`（末字节为 `11₁₆` 而非 `10₁₆`）。该值与表 112/116 的 challengeServer 在正确密钥下的 AES 结果不符，因此服务器判定 POWN 校验失败。
+
+**表 118 — 否定响应**（server → client）
 
 | A_Data | Description | Byte value | Mnemonic |
 |---|---|---|---|
@@ -862,7 +1101,7 @@ SubFunction 参数 `authenticationTask` 向服务器指示应执行的明确任�
 | #2 | Authentication Request SID | `29₁₆` | ARS |
 | #3 | responseCode = Ownership verification failed | `58₁₆` | NRC_OVF |
 
-> **长载荷说明**：证书/336 字节 POWN 的中间字节以 PDF p.86–107 为准；Markdown 表 87–118 存在 OCR 噪声，联调勿直接复制 MinerU 十六进制串。
+> **长载荷说明**：表 87–118 的锚点字节已逐条对照 PDF p.86–107 落表；示例中标为 `00₁₆`–`FF₁₆` 的区段（500 字节证书正文、336 字节 POWN 的非 TLV 头部分、64/32 字节 challenge 中间字节）在 ISO 原文即为任意值占位，不是缺失。MinerU Markdown 在这些表上有 OCR 噪声与行错位，联调勿直接复制转换文本中的十六进制串。
 
 ---
 
@@ -904,7 +1143,7 @@ SubFunction 参数 `authenticationTask` 向服务器指示应执行的明确任�
    - B.5 全表取值与 Mnemonic。  
 3. **与 AUTOSAR DM 关系**：AUTOSAR AP Diagnostics R25 仅强制 APCE 子集（`00/01/02/03/04/08`），ACR（`05/06/07`）不在 DM 范围；实现边界见交叉链接文档。  
 4. **图**：图 8–11 已内嵌引用 `../markdown/ISO_14229-1-2020/images/` 下 MinerU 转换图。若本地无 `images/`，先执行 `uv run --project scripts scripts/unpack_markdown_images.py --stem ISO_14229-1-2020`。  
-5. **消息流长表**：示例 #1–#3、#6 的关键载荷已按 PDF 落表；示例 #4/#5/#7 长 POWN 中间字节仍以 PDF 为准，避免 OCR 噪声。  
+5. **消息流长表**：示例 #1–#7（表 87–118）均已按 PDF 落成完整表格，含 A_Data 编号、Byte value 与 Mnemonic；ISO 用 `00₁₆`–`FF₁₆` 表示的任意值区段照录为区间行。  
 6. **本次 PDF 校对修订（2026-08-11）**：  
    - 开篇 security/safety 区分译法；  
    - `proofOfOwnership` 方向与 ISO 英文笔误说明；  
@@ -914,6 +1153,12 @@ SubFunction 参数 `authenticationTask` 向服务器指示应执行的明确任�
    - 示例 #5：澄清前提 `RV=21₁₆` 与表 110 `NRC=51₁₆` 两条路径；  
    - 示例 #7：失败原因为客户端/服务器 AES 密钥不匹配；  
    - 标明 ISO 原文问题：表 82 后误写 Bidirectional、表 99 缺 CEID、示例 #4 正文 7618→7816、B.5 SSS 说明句。
+7. **本次修订（2026-08-25）**：补全 10.6.8.4–10.6.8.7（示例 #4–#7）此前以叙述行代替的表格，新增/展开 **表 101–118** 共 18 张完整表：  
+   - 表 101/102、103/104、105/106：ACR 非对称成功路径；表 105 的 336 字节 POWN 按 TLV 锚点（`7F21` 模板、`7F4E` 内容、`5F37 82 01 00` 签名）逐字节列出；  
+   - 表 107–110：ACR 非对称失败路径；补 PDF 表 109 末两行 A_Data 印作 `#390/#391` 的印本错误（应为 `#391/#392`）；  
+   - 表 111–114：ACR 对称成功路径；challengeServer `32 43 F6 A8 88 5A 30 8D 31 31 98 A2 E0 37 07 34₁₆` 与 POWN `39 25 84 1D 02 DC 09 FB DC 11 85 97 19 6A 0B 32₁₆` 逐字节落表；Mnemonic 按 PDF 区分 `_HB`/`_LB`；  
+   - 表 115–118：ACR 对称失败路径；错误 POWN 为 `01 02 … 0F 11₁₆`（末字节 `11₁₆`）；  
+   - 修正文首交叉链接（`..._Authentication_Spec.md` → `..._APCE_Spec.md`），并补 ACR 单向 Spec 链接。
 
 ---
 
