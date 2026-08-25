@@ -55,10 +55,11 @@ print(len(PdfReader(r'''$PdfPath''').pages))
     $tmpPy = [System.IO.Path]::GetTempFileName() + ".py"
     try {
         Set-Content -Path $tmpPy -Value $py -Encoding UTF8
-        $out = & uv run --with pypdf python $tmpPy 2>&1 | Out-String
+        $out = & uv run --project $ScriptRoot python $tmpPy 2>&1 | Out-String
         if ($LASTEXITCODE -ne 0) { throw "uv/pypdf failed: $out" }
         $n = 0
-        if (-not [int]::TryParse($out.Trim(), [ref]$n) -or $n -le 0) {
+        $countLine = ($out -split "`r?`n" | Where-Object { $_ -match '^\s*\d+\s*$' } | Select-Object -Last 1)
+        if (-not [int]::TryParse(($countLine.Trim()), [ref]$n) -or $n -le 0) {
             throw "Invalid page count output: $out"
         }
         return $n
@@ -92,11 +93,19 @@ function Wait-ServerIdle {
     while ((Get-Date) -lt $deadline) {
         $h = Get-Health
         $busy = [int]$h.processing_tasks + [int]$h.queued_tasks
+        $max = 3
+        if ($h.max_concurrent_requests) { $max = [int]$h.max_concurrent_requests }
         if ($busy -le 0) {
             Write-Log "Server idle (processing=0, queued=0)."
             return
         }
-        Write-Log "Server busy processing=$($h.processing_tasks) queued=$($h.queued_tasks); waiting ${PollSeconds}s..."
+        # Some MinerU hosts keep processing_tasks=1 after a completed zip download.
+        # Sequential OOM avoidance only requires a free slot, not a zero counter.
+        if ($busy -lt $max) {
+            Write-Log "Server has free slot processing=$($h.processing_tasks) queued=$($h.queued_tasks) max=$max; proceeding."
+            return
+        }
+        Write-Log "Server busy processing=$($h.processing_tasks) queued=$($h.queued_tasks) max=$max; waiting ${PollSeconds}s..."
         Start-Sleep -Seconds $PollSeconds
     }
     throw "Timed out waiting for server idle after $HealthWaitMinutes minutes."
@@ -453,7 +462,7 @@ foreach ($pdf in $pdfs) {
         if ($PostProcess) {
             Write-Log "PostProcess: fix_dm_markdown.py --stem $stem"
             $fixScript = Join-Path $ScriptRoot "fix_dm_markdown.py"
-            & uv run $fixScript --stem $stem --no-backup
+            & uv run --project $ScriptRoot $fixScript --stem $stem --no-backup
             if ($LASTEXITCODE -ne 0) {
                 throw "fix_dm_markdown.py failed for $stem (exit $LASTEXITCODE)"
             }
