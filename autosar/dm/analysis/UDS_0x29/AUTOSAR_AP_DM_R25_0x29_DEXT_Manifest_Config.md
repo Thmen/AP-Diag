@@ -9,8 +9,9 @@
 | 状态 | 配置清单基线（规范摘录整理） |
 | 基线 | AUTOSAR Adaptive Platform Diagnostics R25-11；CP Diagnostic Extract Template R25-11；AP Manifest Specification R25-11 |
 | 分析日期 | 2026-08-07 |
-| 关联 Spec | [AUTOSAR_AP_DM_R25_UDS_0x29_Authentication_Spec.md](./AUTOSAR_AP_DM_R25_UDS_0x29_Authentication_Spec.md)（§6 API/DEXT、AR29-CFG-*、PD29-*） |
-| 演进背景 | [AUTOSAR_AP_DM_Evolution_Report_R19-R25.md](./AUTOSAR_AP_DM_Evolution_Report_R19-R25.md)、[AUTOSAR_AP_DM_R25_vs_R19_Five_Directions.md](./AUTOSAR_AP_DM_R25_vs_R19_Five_Directions.md)（方向 3：安全与访问控制） |
+| 关联 Spec | [AUTOSAR_AP_DM_R25_UDS_0x29_APCE_Spec.md](./AUTOSAR_AP_DM_R25_UDS_0x29_APCE_Spec.md)（§6 API/DEXT、AR29-CFG-*、PD29-*） |
+| 机制与 API 参考 | [AUTOSAR_AP_DM_R25_Authentication_State_and_API_Reference.md](./AUTOSAR_AP_DM_R25_Authentication_State_and_API_Reference.md)（Role/DAL 配置粒度与判定、`constr_10038`、C++ 接口约束） |
+| 演进背景 | [AUTOSAR_AP_DM_Evolution_Report_R19-R25.md](../AUTOSAR_AP_DM_Evolution_Report_R19-R25.md)、[AUTOSAR_AP_DM_R25_vs_R19_Five_Directions.md](../AUTOSAR_AP_DM_R25_vs_R19_Five_Directions.md)（方向 3：安全与访问控制） |
 
 ## 目录
 
@@ -307,4 +308,4 @@ AP 的 CEID→证书处理走应用 Port + `TransmitCertificate::Process`，不�
 
 ---
 
-*文档结束。行为 Spec、AR/TC 与 Open PD 以 [0x29 Authentication Spec](./AUTOSAR_AP_DM_R25_UDS_0x29_Authentication_Spec.md) 为准；本文专注配置面清单。*
+*文档结束。行为 Spec、AR/TC 与 Open PD 以 [0x29 APCE Spec](./AUTOSAR_AP_DM_R25_UDS_0x29_APCE_Spec.md) 为准；本文专注配置面清单。*

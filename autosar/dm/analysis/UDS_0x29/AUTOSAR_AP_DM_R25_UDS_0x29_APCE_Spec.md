@@ -55,10 +55,12 @@
 
 ### 0.2 交叉链接
 
-- 总体演进背景见 [AUTOSAR AP DM Evolution Report R19–R25](./AUTOSAR_AP_DM_Evolution_Report_R19-R25.md)。
-- R25 相对 R19 的五大方向与工作量框架见 [AUTOSAR AP DM R25 vs R19 Five Directions](./AUTOSAR_AP_DM_R25_vs_R19_Five_Directions.md)。
+- 总体演进背景见 [AUTOSAR AP DM Evolution Report R19–R25](../AUTOSAR_AP_DM_Evolution_Report_R19-R25.md)。
+- R25 相对 R19 的五大方向与工作量框架见 [AUTOSAR AP DM R25 vs R19 Five Directions](../AUTOSAR_AP_DM_R25_vs_R19_Five_Directions.md)。
 - DEXT / AP Manifest 配置项清单见 [AUTOSAR AP DM R25 0x29 DEXT Manifest Config](./AUTOSAR_AP_DM_R25_0x29_DEXT_Manifest_Config.md)。
-- ISO 14229-1:2020 §10.6 + B.5 全量中文译本见 [ISO_14229-1_2020_UDS_0x29_Authentication_Full_Spec.md](./ISO_14229-1_2020_UDS_0x29_Authentication_Full_Spec.md)（含 ACR；本文仅 APCE 子集）。
+- ISO 14229-1:2020 §10.6 + B.5 全量中文译本见 [ISO_14229-1_2020_UDS_0x29_Translation_Full_Spec.md](./ISO_14229-1_2020_UDS_0x29_Translation_Full_Spec.md)（含 ACR；本文仅 APCE 子集）。
+- **认证状态管理、进程模型、连接粒度与 `ara::diag` 认证类的完整 C++ 约束**见 [认证状态管理与 API 约束参考](./AUTOSAR_AP_DM_R25_Authentication_State_and_API_Reference.md)。本文 §4.2、§6.3、§6.5、§7 只保留行为要点，机制细节与 Role/DAL 配置粒度在该文档展开。
+- ACR（`0x05`/`0x06`）相关：[缺口分析](./AUTOSAR_AP_DM_R25_UDS_0x29_ACR_Config_API_Gap.md)、[实现 Spec](./AUTOSAR_AP_DM_R25_UDS_0x29_ACR_Unidirectional_Spec.md)、[增量模块拆分](./UDS_0x29_ACR_Unidirectional_Incremental_Module_Breakdown.md)。
 - 本文不复制上述报告的宏观叙事，只展开 0x29 的实现边界、AR 和测试闭环。
 
 ## 1. 目的、方法与证据规则
@@ -180,7 +182,7 @@ R25 Annex E.11.2 与本专题直接相关的 changed items 为：
 
 | 0x27 SecurityLevel gate | 0x29 Role/DAL gate | 仅要求 0x27 的资源 | 仅要求 0x29 的资源 | 同时要求两者的资源 |
 |---|---|---|---|---|
-| 失败 | 失败 | `0x33` | `0x34` | 两 gate 都失败；最终 NRC 优先级由 ISO/OEM 与 PD29-08 冻结 |
+| 失败 | 失败 | `0x33` | `0x34` | 两 gate 都失败；按 ISO §8.7.2 Figure 5 / §8.7.3.1 Figure 6，认证检查先行，最终 NRC 为 **`0x34`** |
 | 通过 | 失败 | 允许 | `0x34` | `0x34` |
 | 失败 | 通过 | `0x33` | 允许 | `0x33` |
 | 通过 | 通过 | 允许 | 允许 | 允许 |
@@ -272,7 +274,16 @@ sequenceDiagram
 - 子功能专属 CEID/应用处理；
 - 异步响应与 SecurityEvent。
 
-0x27 与 0x29 是独立 gate，在授权图中汇合；本文不固定谁先执行。AUTOSAR 将总顺序交给 ISO 14229-1，并在 SWS 中规定若干检查，两个 gate 同时失败时的 NRC 优先级必须由 ISO/OEM 与 PD29-08 冻结。
+0x27 与 0x29 是独立 gate，在授权图中汇合，且**执行顺序由 ISO 规范确定**：[SWS_DM_00096] 把总顺序交给 ISO 14229-1，并明示依据为 ISO §8.7.2 **Figure 5 — General server response behaviour**（SID 级）与 §8.7.3.1 **Figure 6**（带 SubFunction 的服务）。
+
+两图的强制顺序为：
+
+- SID 级（Figure 5）：`0x11` SID supported → **`0x34` Authentication check** → `0x7F` session → `0x33` SID security check → `0x38`/`0x39` secure transmission；
+- 子功能级（Figure 6）：`0x13` minimum length → `0x12` SubFunction supported → **`0x34` Authentication check** → `0x7E` session → `0x33` SubFunction security check → `0x24` request sequence。
+
+由此可确定两点：**0x29 认证 gate 排在 0x27 SecurityLevel gate 之前**，两 gate 同时失败时唯一 NRC 为 `0x34`；且 ISO 把 `Authentication check` 置于 **Mandatory** 列、`security check` 置于 **Optional** 列，认证 gate 不可跳过。[ISO] ISO 14229-1:2020 §8.7.2、§8.7.3.1。
+
+ISO §8.7.2 的 NOTE 指出，由于 Optional 检查可以不实现，"a specific NRC is not guaranteed for all possible test pattern sequences"；但 Mandatory 列的相对顺序是确定的，上述结论不受削弱。原 PD29-08 因此关闭（见 §12.1）。
 
 ### 5.2 NRC 来源清单
 
@@ -290,7 +301,9 @@ sequenceDiagram
 | 应用 callback 返回错误 | 将有效 `DiagUdsNrcErrc`/错误码转为相同 NRC | [SWS_DM_01231]、[SWS_DM_01236]、[SWS_DM_01241]、[SWS_DM_01249]、[SWS_DM_02059]、[SWS_DM_02060] |
 | `0x04` 未知 CEID | `0x31`，且不得调用 `Process()` | [SWS_DM_01247] |
 
-这不是 ISO 14229-1:2020 的“完整 NRC 集”。服务特定 NRC、所有长度分支和双重失败时的优先级必须由授权 ISO/OEM 测试向量补齐。[ISO]
+这不是 ISO 14229-1:2020 的“完整 NRC 集”。服务特定 NRC 与所有长度分支必须由授权 ISO/OEM 测试向量补齐。[ISO]
+
+**双重失败的优先级已由 ISO 裁决**，不属于待冻结项：按 §5.1 引用的 Figure 5/Figure 6，`0x34` 先于 `0x33`；子功能级 `0x33` 先于 `0x24`。OEM 只能在 Optional 检查是否实现的范围内做选择，不能改变 Mandatory 列的相对顺序。[ISO]
 
 ## 6. API 与 DEXT 功能 Spec
 
@@ -426,10 +439,10 @@ flowchart TD
     GateJoin -->|"27 pass / 29 pass"| Allow["Allow"]
     GateJoin -->|"27 fail / 29 pass"| Nrc33["NRC 0x33"]
     GateJoin -->|"27 pass / 29 fail"| Nrc34["NRC 0x34"]
-    GateJoin -->|"both fail"| DualFail["NRC precedence from ISO/OEM + PD29-08"]
+    GateJoin -->|"both fail"| DualFail["NRC 0x34 (ISO Figure 5/6: auth check precedes security check)"]
 ```
 
-图中的 `Override → DeAuth` 表示 override 超时或 Handle `Revoke()` 后回到配置默认 Role；`Override → Auth` 表示随后调用 `Authenticate()`。`Override` 只是图示的 Role 生命周期阶段，期间认证状态仍为 `kDeAuthenticated`，不是额外 AUTOSAR 枚举状态。两个 gate 从同一请求独立分支后汇合，图中没有规定执行先后；同时失败时按 ISO/OEM 与 PD29-08 冻结 NRC 优先级。
+图中的 `Override → DeAuth` 表示 override 超时或 Handle `Revoke()` 后回到配置默认 Role；`Override → Auth` 表示随后调用 `Authenticate()`。`Override` 只是图示的 Role 生命周期阶段，期间认证状态仍为 `kDeAuthenticated`，不是额外 AUTOSAR 枚举状态。两个 gate 的判定结果相互独立（互不代偿），但**执行先后由 ISO 规定**：按 §5.1 引用的 ISO §8.7.2 Figure 5 与 §8.7.3.1 Figure 6，认证检查排在 SecurityLevel 检查之前，因此同时失败时唯一 NRC 为 `0x34`。图中的汇合节点只表示"两个独立授权轴的结果合并"，不表示顺序未定。
 
 ### 7.2 生命周期规则
 
@@ -815,7 +828,7 @@ AR Catalog 是 AR→TC 主矩阵；§10 每个具体 TC 行的“覆盖 AR”列
 | TC29-OVL-01 | 0x27 gate pass / 0x29 gate pass | 同时要求两者的资源允许 | AR29-AUTHZ-06、AR29-COMPAT-02 |
 | TC29-OVL-02 | 0x27 gate fail / 0x29 gate pass | `0x33`；event 100；不将 0x29 gate 结果改写为状态 | AR29-AUTHZ-06、AR29-AUDIT-06 |
 | TC29-OVL-03 | 0x27 gate pass / 0x29 gate fail | `0x34`；event 101 | AR29-AUTHZ-06、AR29-AUDIT-03 |
-| TC29-OVL-04 | 两 gate 均 fail | NRC 优先级引用 PD29-08；PD29-08 为 Open 时 `BLOCKED`，并证明实现未固定 gate 先后 | AR29-AUTHZ-06、AR29-COMPAT-02 |
+| TC29-OVL-04 | 两 gate 均 fail | 唯一 final NRC 必须为 `0x34`（ISO §8.7.2 Figure 5 / §8.7.3.1 Figure 6 认证检查先行）；不得返回 `0x33`。不再 `BLOCKED` | AR29-AUTHZ-06、AR29-COMPAT-02 |
 | TC29-OVL-05 | 0x27 已解锁后执行 0x29 deauth | 0x27 状态不因 [SWS_DM_01212] 被清除 | AR29-COMPAT-03 |
 | TC29-OVL-06 | `kDeAuthenticated`，DEXT default Role 命中目标资源 | 0x29 gate 通过；证明 DeAuth 不等于授权失败 | AR29-AUTHZ-06 |
 | TC29-OVL-07 | `kDeAuthenticated`，OverrideDefaultRoles Role 命中目标资源 | override 有效期内 0x29 gate 通过；到期/Revoke 后按默认 Role 重新判定 | AR29-AUTHZ-06、AR29-LIFE-02 |
@@ -844,7 +857,7 @@ AR Catalog 是 AR→TC 主矩阵；§10 每个具体 TC 行的“覆盖 AR”列
 | TC29-OFF-02 | 重复 Offer | 返回 `kAlreadyOffered`，不产生双重注册 | AR29-APP-05 |
 | TC29-OFF-03 | StopOffer 与在途请求竞态 | 断言引用 PD29-06；PD29-06 为 Open 时 `BLOCKED`，不得出现悬挂 callback/重复响应 | AR29-LIFE-05 |
 | TC29-ISO-01 | ISO golden vectors 覆盖六 SF wire layout/length | 字节级结果与授权 ISO/OEM 基线一致 | AR29-PROTO-01、AR29-PROTO-09 |
-| TC29-ISO-02 | ISO 完整服务特定 NRC 与优先级矩阵 | 每个分支有外部证据；PD29-08 为 Open 时涉及双 gate 优先级的分支 `BLOCKED` | AR29-PROTO-09 |
+| TC29-ISO-02 | ISO 完整服务特定 NRC 与优先级矩阵 | 每个分支有外部证据；通用段顺序按 Figure 5/6 断言（含双 gate → `0x34`），仅 `0x29` 服务特定分支（§10.6.7 / Figure 11）待 OEM 表冻结 | AR29-PROTO-09 |
 | TC29-ISO-03 | OEM crypto vectors | 断言引用 PD29-02/PD29-03；任一为 Open 时 `BLOCKED` | AR29-PROTO-09、AR29-APP-07 |
 | TC29-CMP-01 | R19 组件接入 R25 | 复用 TP/validator/0x27，但新增全部 0x29 状态与 API | AR29-COMPAT-01 |
 | TC29-CMP-02 | 搜索旧 `Authentication::TransmitCertificate` | R24+ 产品代码中无旧 API 调用 | AR29-COMPAT-04 |
@@ -893,7 +906,7 @@ flowchart LR
 | WP29-2 DEXT/Manifest | DEXT Integration | 六 SF、Role/Proxy、AccessPermission、SA range、timeout、CEID、Port Mapping | WP29-1 | PD29-11、PD29-14 | AR29-CFG-*、AR29-AUTHZ-01、AR29-AUTHZ-02 | TC29-CFG-*、TC29-AUTH-01、TC29-AUTH-09 | TC29-CFG-01～TC29-CFG-06 |
 | WP29-3 DM Core | DM Core | 通用校验、六 SF dispatcher、mock callback adapter、Future/0x78、响应组装 | WP29-1、WP29-2 | PD29-05、PD29-09 | AR29-PROTO-02～AR29-PROTO-08、AR29-APP-05 | mock handler 下的 TC29-VAL-*、TC29-00-*、TC29-01-*、TC29-02-*、TC29-03-01～TC29-03-03、TC29-04-01～TC29-04-03、TC29-08-*、TC29-OFF-01、TC29-OFF-02 | 由 WP29-6 的 TC29-03-*、TC29-APP-* 及 WP29-9 的 TC29-CMP-* 判定 |
 | WP29-4 PKI AA | PKI Application | Verify Uni/Bi、VerifyOwnership、TransmitCertificate、证书/算法适配 | WP29-1、WP29-2 | PD29-02、PD29-03、PD29-04、PD29-05、PD29-13 | AR29-APP-01～AR29-APP-04、AR29-APP-07 | DM callback mock 下的 TC29-01-*、TC29-02-01、TC29-02-02、TC29-03-01、TC29-03-02、TC29-04-01、TC29-04-03、TC29-04-05、TC29-ISO-03 | 由 WP29-6 的 TC29-03-*、TC29-APP-* 及 WP29-9 的 TC29-ISO-* 判定 |
-| WP29-5 State/Authz | DM State / Authorization | ClientAuthentication、Role、DAL、S3/inactivity、0x34、Handle | WP29-1、WP29-2 | PD29-07、PD29-08、PD29-12、PD29-14 | AR29-STATE-*、AR29-AUTHZ-*、AR29-LIFE-01～AR29-LIFE-04、AR29-LIFE-06 | state/request mock 下的 TC29-STA-*、TC29-BOOT-*、TC29-DAL-*、TC29-AUTH-*、TC29-OVL-* | 由 WP29-6 的 TC29-APP-* 及 WP29-9 的 TC29-OVL-* 判定 |
+| WP29-5 State/Authz | DM State / Authorization | ClientAuthentication、Role、DAL、S3/inactivity、0x34、Handle | WP29-1、WP29-2 | PD29-07、PD29-12、PD29-14 | AR29-STATE-*、AR29-AUTHZ-*、AR29-LIFE-01～AR29-LIFE-04、AR29-LIFE-06 | state/request mock 下的 TC29-STA-*、TC29-BOOT-*、TC29-DAL-*、TC29-AUTH-*、TC29-OVL-* | 由 WP29-6 的 TC29-APP-* 及 WP29-9 的 TC29-OVL-* 判定 |
 | WP29-6 Bridge Integration | AA/DM Integration | PoO→client lookup→Role mapping→Authenticate 的原子闭环 | WP29-3、WP29-4、WP29-5 | PD29-01、PD29-04、PD29-09 | AR29-APP-06、AR29-STATE-03、AR29-STATE-07、AR29-PROTO-06 | TC29-APP-*、TC29-03-03～TC29-03-05、TC29-CON-03 | TC29-03-*、TC29-APP-*、TC29-CON-03 |
 | WP29-7 IdsM Integration | IdsM Integration | event 100/101/104/105、100+105 组合、context 与并发报告 | WP29-3、WP29-5、WP29-6 | PD29-10 | AR29-AUDIT-* | IdsM sink mock 下的 TC29-IDS-01～TC29-IDS-08、TC29-VAL-04、TC29-VAL-05、TC29-OVL-09 | TC29-IDS-01～TC29-IDS-08、TC29-VAL-04、TC29-VAL-05、TC29-OVL-09 |
 | WP29-8 Runtime Robustness | Platform Runtime / Integration | ConcurrencyType、Cancellation、StopOffer、CEDA lifetime、双客户端隔离 | WP29-3、WP29-4、WP29-5、WP29-6、WP29-7 | PD29-06、PD29-09、PD29-12、PD29-13 | AR29-CONC-*、AR29-LIFE-05、AR29-LIFE-06、AR29-APP-04、AR29-APP-06 | TC29-CON-*、TC29-CAN-*、TC29-OFF-*、TC29-04-05、TC29-STA-11 | TC29-CON-*、TC29-CAN-*、TC29-OFF-*、TC29-04-05 |
@@ -905,6 +918,8 @@ flowchart LR
 
 状态规则：本文初始化全部 PD 为 `Open`。Owner 完成决议、填写可追溯的基线/决议引用并批准后，才可改为 `Closed`；任何“阻塞的 TC”在此之前只能是 `BLOCKED`。
 
+例外：若后续核查发现某项**已由 ISO/AUTOSAR 规范明文裁决**，则该项直接标记 `Closed (spec)` 并以规范章节/约束 ID 作为基线引用，不需要项目决议——规范裁决的效力强于项目决策，且相关 TC 立即解除 `BLOCKED`。
+
 | PD ID | 决策内容 | Owner（角色） | Status | 基线/决议引用 | 阻塞的 TC |
 |---|---|---|---|---|---|
 | PD29-01 | PoO→`Authenticate()`、final response、event 104 的时点与原子性 | AA/DM Integration Owner | Open | 待填写：PD29-01 决议 URI | TC29-APP-02、TC29-03-05 |
@@ -914,13 +929,14 @@ flowchart LR
 | PD29-05 | 每个 CEID 的证书类型、验证/安装/轮换/撤销动作 | PKI Application Owner | Open | 待填写：PD29-05 CEID table URI | TC29-04-01、TC29-04-03 |
 | PD29-06 | StopOffer/cancel 的在途 Future、晚结果和资源释放 | DM Runtime Owner | Open | 待填写：PD29-06 lifecycle URI | TC29-CAN-03、TC29-OFF-03 |
 | PD29-07 | `authenticationTimeout` 显式值或供应商默认基线 | DEXT Owner | Open | 待填写：PD29-07 timeout URI | TC29-STA-03 |
-| PD29-08 | 0x27/0x29 双 gate 同时失败时的 NRC 优先级 | Diagnostics Architecture Owner | Open | 待填写：PD29-08 NRC matrix URI | TC29-OVL-04、TC29-ISO-02 |
+| PD29-08 | ~~0x27/0x29 双 gate 同时失败时的 NRC 优先级~~ → 已由规范裁决：认证检查先行，NRC 为 `0x34` | Diagnostics Architecture Owner | **Closed (spec)** | ISO 14229-1:2020 §8.7.2 Figure 5、§8.7.3.1 Figure 6；[SWS_DM_00096] | 无（TC29-OVL-04、TC29-ISO-02 解除 BLOCKED，断言改为 `0x34`） |
 | PD29-09 | 连续 verify 的 active-attempt 替换和重放规则 | Authentication Design Owner | Open | 待填写：PD29-09 sequence URI | TC29-01-04、TC29-02-04、TC29-03-03、TC29-CON-03 |
 | PD29-10 | DRAFT API/context adapter 与 AUTOSAR release pin | Platform API Owner | Open | 待填写：PD29-10 compatibility URI | TC29-CMP-03、TC29-IDS-01～TC29-IDS-08 |
 | PD29-11 | ExternalAuthentication 范围外、重叠或歧义行为；重叠/歧义至少配置期拒绝 | DEXT Integration + OEM/Supplier Owner | Open | 待填写：PD29-11 address mapping URI | TC29-CFG-05 |
 | PD29-12 | [01155]/[01217] Handle Refresh 文本张力、Handle/timer 关联 | Platform API Owner | Open | 待填写：PD29-12 Handle URI | TC29-STA-11 |
 | PD29-13 | TransmitCertificate CEDA lifetime：callback 内复制或供应商增强保证 | PKI Application + Platform Owner | Open | 待填写：PD29-13 CEDA lifetime URI | TC29-04-05 |
-| PD29-14 | `authenticationEnabled` 存在但 Role 引用为空的配置/运行时行为 | DEXT + Authorization Owner | Open | 待填写：PD29-14 auth-role URI | TC29-AUTH-09 |
+| PD29-14 | `authenticationEnabled` 存在但 Role 引用为空：**运行时行为已由规范裁决**（对照当前 DAL 检查，[TPS_DEXT_01190]）；仅“配置期是否允许空引用、是否作为 lint 告警”仍需冻结 | DEXT + Authorization Owner | Open（缩小范围） | 运行时：[TPS_DEXT_01190]、[SWS_DM_01223]；配置期待填写 | TC29-AUTH-09（运行时断言可立即实施） |
+| PD29-15 | ~~是否/如何用认证门保护 0x29 自身~~ → 已由规范禁止 | DEXT Owner | **Closed (spec)** | DEXT `constr_10038`：`sub-classes of DiagnosticAuthentication` 不得存在 `authenticationEnabled` | 无 |
 
 ### 12.2 风险登记
 
@@ -932,7 +948,7 @@ flowchart LR
 | 将 [01126]–[01128] 的 Span lifetime 类推到 [01968] | `Process()` 返回后异步读取失效 CEDA | callback 返回前复制 CEDA，或冻结供应商增强保证；TC29-04-05 |
 | kConcurrent 下共享最新 challenge | 双客户端 PoO 串用 | per-client context key、交错并发测试 |
 | 用 Auth State 代替 0x29 gate 结果 | DeAuth 被过度拒绝或 Authenticated 被过度授权 | TC29-OVL-06～TC29-OVL-08；授权始终按有效 Role/DAL 判定 |
-| 固定 0x27/0x29 gate 顺序 | 双失败 NRC 与 OEM/ISO 基线冲突 | PD29-08、TC29-OVL-04 |
+| 双失败时误返回 `0x33` | 与 ISO Figure 5/6 的强制顺序冲突，一致性测试失败 | §5.1 顺序表、TC29-OVL-04 断言 `0x34` |
 | [01155]/[01217] Refresh 文本张力未澄清 | timer 被少刷或多刷，导致权限期限错误 | PD29-12、供应商澄清 gate、TC29-STA-11 |
 | ExternalAuthentication 范围重叠/歧义或范围外行为未冻结 | 客户端映射错误或状态串扰 | 重叠/歧义配置期拒绝；PD29-11、TC29-CFG-05 |
 | Open PD 依赖项被按模糊策略判 PASS | 测试结果不可复现、无法发布审计 | §10.1 BLOCKED 规则与 §12.1 PD→TC 矩阵 |

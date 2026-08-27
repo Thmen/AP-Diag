@@ -52,7 +52,7 @@
 
 | 主题 | 权威源 | 检索/校对载体 |
 |---|---|---|
-| ACR 前提与单向流程 | [`autosar/dm/iso/ISO 14229-1-2020.pdf`](../iso/ISO%2014229-1-2020.pdf)，§10.6.3、Figure 10 | [ISO 0x29 全量中文译本](./ISO_14229-1_2020_UDS_0x29_Authentication_Full_Spec.md) §10.6.3 |
+| ACR 前提与单向流程 | [`autosar/dm/iso/ISO 14229-1-2020.pdf`](../iso/ISO%2014229-1-2020.pdf)，§10.6.3、Figure 10 | [ISO 0x29 全量中文译本](./ISO_14229-1_2020_UDS_0x29_Translation_Full_Spec.md) §10.6.3 |
 | 公共认证状态、退出条件 | 同上，§10.6.4 | 同上 §10.6.4 |
 | `0x05/0x06` 请求 | 同上，§10.6.5，Tables 70/71/74/75 | 同上 §10.6.5 |
 | `0x05/0x06` 正响应 | 同上，§10.6.6，Tables 81/82/85 | 同上 §10.6.6 |
@@ -103,20 +103,32 @@ Diagnostic Client
 
 AUTOSAR 公共校验顺序以 [SWS_DM_00096] 为入口；格式错误 `0x13` 见 [SWS_DM_00098]，未知 SF `0x12` 见 [SWS_DM_00100]，session gate 见 [SWS_DM_00101]、[SWS_DM_00102]，SecurityLevel gate 见 [SWS_DM_00103]、[SWS_DM_00450]，环境条件见 [SWS_DM_00111]、[SWS_DM_00286]–[SWS_DM_00289]。ACR 专属逻辑只在全部前置校验成功后调用。`AUTOSAR-NORM`
 
-建议实现的失败即停顺序：
+通用部分的**校验先后不是实现自由**：[SWS_DM_00096] 明示依据 ISO §8.7.2 **Figure 5 — General server response behaviour**；`0x29` 带 SubFunction，因此实际适用 §8.7.3.1 **Figure 6**。Figure 6 的强制顺序为：
 
-1. TP 完整性、最小长度、SID；
-2. 提取 SPRMIB 和 bit 6..0 SF；
-3. SF 支持/配置、寻址方式、session、SecurityLevel、环境条件；
-4. SF 精确长度与所有长度前缀一致性；
-5. per-client 序列检查；
-6. AI/算法/profile、challenge 状态；
-7. crypto/授权映射/状态原子提交；
-8. 组装 final response、SecurityEvent 与审计。
+1. Minimum length check → `0x13`；
+2. SubFunction supported ever for the SID? → `0x12`；
+3. **Authentication check OK? → `0x34`**；
+4. SubFunction supported in active session for the SID? → `0x7E`；
+5. SubFunction security check OK?（Optional）→ `0x33`；
+6. request sequence respected for the SubFunction?（Optional）→ `0x24`；
+7. manufacturer/supplier specific check → `XX`；
+8. Specific SID checks（ACR 专属逻辑从这里开始）。
 
-步骤 1–4 的精确优先级以 ISO Figure 11、AUTOSAR [SWS_DM_00096] 和 OEM NRC 策略为准；上列是实现分层，不替代标准冲突裁决。
+`ISO-NORM` ISO 14229-1:2020 §8.7.3.1。要点：`0x34` 先于 `0x33`，`0x33` 先于 `0x24`；`Authentication check` 在 **Mandatory** 列，`security check` 与 `request sequence` 在 **Optional** 列。
 
-Role/DAL 与 NRC `0x34` 是认证完成后对**受保护业务服务**执行的授权门，不应作为 `0x05/0x06` 建立认证路径的固有前置条件，否则会形成“未认证就不能认证”的循环。若项目确需保护 0x29 自身，必须作为独立 `PROJECT-DECISION` 说明其引导与恢复路径。
+落到 ACR 实现，专属逻辑位于第 8 步之后，其内部分层为：
+
+1. SF 精确长度与所有长度前缀一致性；
+2. per-client 序列检查（ACR transaction 层，区别于第 6 步的通用 sequence 检查）；
+3. AI/算法/profile、challenge 状态；
+4. crypto/授权映射/状态原子提交；
+5. 组装 final response、SecurityEvent 与审计。
+
+`0x29` 服务特定 NRC 的分支裁决另见 ISO §10.6.7 与 Figure 11；Figure 5/6 管通用顺序，Figure 11 管 `0x29` 内部的服务特定分支，两者层级不同、不冲突。
+
+Role/DAL 与 NRC `0x34` 是认证完成后对**受保护业务服务**执行的授权门。它**不可能**成为 `0x05/0x06` 的前置条件——DEXT `constr_10038`（imposition time **CP: IT_DiagDes, AP: IT_DiagDes**）明文规定，被 **`sub-classes of DiagnosticAuthentication`** 引用的 `DiagnosticAccessPermission` 不得存在 `authenticationEnabled`。因此"未认证就不能认证"的死锁在元模型层面已被排除，无需项目自行设计引导与恢复路径。`AUTOSAR-NORM`
+
+约束范围需注意：`constr_10038` 只禁止 `authenticationEnabled` 这一个聚合。`DiagnosticAuthentication` 作为 `DiagnosticServiceInstance` 子类仍继承 `accessPermission`（0..1），所以用 **session 门、`0x27` SecurityLevel 门或环境条件**保护 `0x05/0x06` 是合法配置——对既有栈而言，`0x27` 门是可直接复用的加固点。`AUTOSAR-NORM` + `PROJECT-DECISION`（是否启用）
 
 ### 3.3 Conversation、并发、取消和定时
 
@@ -342,19 +354,29 @@ AUTOSAR 可复用行为：
 | `0x10` | generalReject；可替代详细 `0x50–0x5D`，也用于 response-pending 达上限 |
 | `0x21` | busyRepeatRequest；资源/并发策略允许客户端稍后重试时，不能代替 sequence error |
 | `0x31` | requestOutOfRange；算法 OID/profile/参数值不支持时是否用 31 或 22 必须冻结 |
-| `0x34` | authenticationRequired；受保护服务 Role/DAL 均失败，[SWS_DM_01225] |
+| `0x34` | authenticationRequired；受保护服务 Role/DAL 均失败，[SWS_DM_01225]；按 ISO Figure 6 该检查**先于** `0x33`，双门同时失败时唯一 NRC 为 `0x34` |
 | `0x78` | requestCorrectlyReceivedResponsePending；仅 interim，不是 final |
 
 ### 7.3 决策顺序
 
-1. 先做 ISO/AUTOSAR 通用格式与支持性检查；格式错误优先 `0x13`，未知 SF 为 `0x12`。
-2. 再做 session/security/Role/环境 gate；失败不得进入 ACR callback。
-3. 再做 transaction sequence；无有效前序 05 的 06 为 `0x24`。
-4. 再做 AI/profile/资源检查；项目冻结 `0x22/0x31/0x21` 的边界。
-5. 最后做 crypto、rights、session key；用冻结的 `0x50–0x5D` 或 `0x10`。
-6. 异步处理中可发 `0x78`；超过上限 final `0x10`。
+通用段的顺序由 ISO §8.7.3.1 Figure 6 强制规定（详见 §3.2），不可由实现调整：
 
-双重失败的唯一 NRC 必须遵循 ISO Figure 11 与 OEM 表，不得由线程完成先后决定。NRC 与 RV 映射表应是单一配置源。
+1. 最小长度 → `0x13`；
+2. SF 支持性 → `0x12`；
+3. **认证门（Role → DAL）→ `0x34`**；
+4. SF 在当前 session 是否支持 → `0x7E`；
+5. SF SecurityLevel 门 → `0x33`；
+6. 通用 request sequence → `0x24`；
+7. manufacturer/supplier 检查。
+
+ACR 专属段（Figure 6 的 "Specific SID checks" 之后）：
+
+8. ACR transaction sequence；无有效前序 05 的 06 为 `0x24`。
+9. AI/profile/资源检查；项目冻结 `0x22/0x31/0x21` 的边界。
+10. crypto、rights、session key；用冻结的 `0x50–0x5D` 或 `0x10`。
+11. 异步处理中可发 `0x78`；超过上限 final `0x10`。
+
+**双重失败的裁决**：通用段内的双重失败按 Figure 6 的位次决定，`0x34` 优先于 `0x33`，`0x33` 优先于 `0x24`——这是 `ISO-NORM`，不是 OEM 可选项。ACR 专属段（第 8–10 步）内部的分支优先级按 ISO §10.6.7、Figure 11 与冻结的 OEM 表裁决。任一层的唯一 NRC 都不得由线程完成先后决定。NRC 与 RV 映射表应是单一配置源。
 
 ## 8. 对外接口与项目扩展边界
 
@@ -375,6 +397,12 @@ AUTOSAR 可复用行为：
 相关依据：[SWS_DM_01191]–[SWS_DM_01201]、[SWS_DM_01132]–[SWS_DM_01155]、[SWS_DM_01206]、[SWS_DM_01218]–[SWS_DM_01225]。
 
 ### 8.3 ACR 专属逻辑接口需求（非 AUTOSAR API）
+
+本节分三层：§8.3.1 描述**必须存在的能力**（不绑定语言）；§8.3.2 给出**参考 C++ 接口设计**，其形状严格模仿 APCE 的 DM↔应用分工；§8.3.3 说明该设计的规范依据与偏离点。
+
+**全节前提**：[SWS_DM_01226] 的子功能白名单不含 `0x05`/`0x06`，且其 Note 明确 "Authentication with challenge-response (ACR) is currently out of scope of the Diagnostic Manager"。因此本节所有类名、方法名与命名空间均为**项目工程构件**，不得声称为 `ara::diag` 标准 API。`AUTOSAR-NORM`（排除性）
+
+#### 8.3.1 逻辑能力
 
 以下仅描述能力，不冻结 C++ ABI：
 
@@ -399,7 +427,104 @@ Deauthenticate(context, reason)
 - `roles/optionalDal/keyHandle` 只在原子提交阶段生效；
 - 同一逻辑接口是否并发、StopOffer/关闭时的晚到结果处置必须冻结。
 
-配置/API 未决项及建议 schema 见配套缺口文档：[AUTOSAR_AP_DM_R25_UDS_0x29_ACR_Config_API_Gap.md](./AUTOSAR_AP_DM_R25_UDS_0x29_ACR_Config_API_Gap.md)。在项目决策冻结前，任何具体类名、manifest 元类或 callback 签名都不得标为标准。
+> **上表中 `returnValue` 与 `roles` 的归属需按 §8.3.3 收窄**：`returnValue`（RV）由 DM 层填充，不应作为回调返回值；`roles`/`optionalDal` 建议不经回调返回，而由应用直接注入标准状态通路。上表保留它们只表示"这些信息必须在某处产生"。
+
+#### 8.3.2 参考 C++ 接口设计
+
+```cpp
+// 项目命名空间——不是 AUTOSAR 标准 API（见 §8.3 前提）
+namespace myoem::diag {
+
+class ChallengeResponseAuthentication {
+public:
+  // ISO 14229-1:2020 Table 70/71：AI 恰为 16 字节。
+  // 用 std::array 而非 Span，在类型层面表达固定长度约束。
+  static constexpr std::size_t kAlgorithmIndicatorSize = 16U;
+  using AlgorithmIndicator = std::array<ara::core::Byte, kAlgorithmIndicatorSize>;
+
+  // 显式客户端标识：对应 [SWS_DM_00421] 的 (sourceAddr, globalChannelId) 元组。
+  // 相对 APCE 的有意偏离，理由见 §8.3.3。
+  struct ClientContext {
+    std::uint16_t sourceAddress;
+    std::uint32_t globalChannelId;
+  };
+
+  // 0x05 的业务返回：只含数据。长度前缀（LOCHSE/LONAP）与 RV 由 DM 层填充。
+  struct ChallengeResult {
+    ara::core::Vector<ara::core::Byte> challengeServer;            // Mandatory，ISO Table 81
+    ara::core::Vector<ara::core::Byte> neededAdditionalParameter;  // 空 => 响应 LONAP = 0x0000
+  };
+
+  // ---- 构造与特殊成员：照搬 APCE 约束（对应 [SWS_DM_01124]、[SWS_DM_01607]–[SWS_DM_01610]）----
+  explicit ChallengeResponseAuthentication(
+      const ara::core::InstanceSpecifier& specifier,
+      ara::diag::ConcurrencyType concurrencyType) noexcept;
+
+  ChallengeResponseAuthentication(ChallengeResponseAuthentication&&) noexcept = delete;
+  ChallengeResponseAuthentication(ChallengeResponseAuthentication&)           = delete;
+  ChallengeResponseAuthentication& operator=(ChallengeResponseAuthentication&&) = delete;
+  ChallengeResponseAuthentication& operator=(ChallengeResponseAuthentication&)  = delete;
+  virtual ~ChallengeResponseAuthentication() noexcept;
+
+  // 未 Offer / 已 StopOffer 时 DM 应答 0x94（对应 [SWS_DM_01257] 的等价行为）
+  ara::core::Result<void> Offer() noexcept;
+  void StopOffer() noexcept;
+
+  // ---- 0x05 requestChallengeForAuthentication ----
+  // 失败：Promise::SetError(DiagUdsNrcErrc)，由 DM 转为 NRC（对应 [SWS_DM_01231] 的等价行为）
+  virtual ara::core::Future<ChallengeResult>
+  RequestChallengeForAuthentication(
+      ara::core::Byte communicationConfiguration,
+      const AlgorithmIndicator& algorithmIndicator,
+      const ClientContext& clientContext,
+      const ara::diag::MetaInfo& metaInfo,
+      ara::diag::CancellationHandler cancellationHandler) noexcept = 0;
+
+  // ---- 0x06 verifyProofOfOwnershipUnidirectional ----
+  // 返回 sessionKeyInfo；COCO 指示不建立会话密钥时返回空 vector（=> LOSKI = 0x0000）
+  // 不返回 roles：授权注入走 ExternalAuthentication 标准通路（见 §8.2、§8.3.3）
+  virtual ara::core::Future<ara::core::Vector<ara::core::Byte>>
+  VerifyProofOfOwnershipUnidirectional(
+      const AlgorithmIndicator& algorithmIndicator,
+      ara::core::Span<const ara::core::Byte> proofOfOwnershipClient,
+      ara::core::Span<const ara::core::Byte> challengeClient,      // 可为空 Span
+      ara::core::Span<const ara::core::Byte> additionalParameter,  // 可为空 Span
+      const ClientContext& clientContext,
+      const ara::diag::MetaInfo& metaInfo,
+      ara::diag::CancellationHandler cancellationHandler) noexcept = 0;
+};
+
+}  // namespace myoem::diag
+```
+
+实现约束与 APCE 逐条对齐（`DERIVED`，来源见 §8.3.3）：
+
+| 约束 | 内容 |
+|---|---|
+| 缓冲区生命周期 | 所有 `Span` 入参仅在 Promise 完成或被 `cancellationHandler` 取消前有效；**异步处理必须先拷贝** |
+| 线程安全 | 由构造时的 `ConcurrencyType` 决定；传 `kConcurrent` 则实现必须自带同步 |
+| 可重入 | 不同客户端的请求可并发进入同一回调 |
+| 错误返回 | 只用 `DiagUdsNrcErrc`；密码库内部错误、异常文本、密钥状态不得外泄 |
+| 单实例 | 拷贝/移动构造与赋值全部 `delete` |
+| 序列状态 | **由应用维护**（challenge 生命周期、`0x05`→`0x06` 绑定、AI 一致性），DM 不跟踪 |
+
+#### 8.3.3 设计依据与偏离点
+
+**照搬 APCE 的四条分工先例**（均来自 [SWS_DM_01233] 及其上下文，`AUTOSAR-REF`）：
+
+1. **长度前缀由 DM 派生**——原文 "The field lengthOfChallengeServer (LOCHSE) ... shall be derived by the Diagnostic Server instance from the returned Challenge and filled in the positive response"。故回调只返回数据，不返回长度。
+2. **RV 由 DM 设置**——原文 "shall set the parameter authenticationReturnParameter (RV) to 0x11"。故 `0x05`/`0x06` 的 RV（`0x00`/`0x12`）由 DM 层填，回调不返回 RV。
+3. **应用错误码由 DM 转译**——[SWS_DM_01231]：应用返回错误码，DM 发送对应 NRC 的负响应。
+4. **DM 不维护序列状态**——[SWS_DM_01233] 后的说明："The Diagnostic Server instance shall treat each verifyCertificateUnidirectional sub function request **individually and shall not keep track of previously received** ... requests"。ACR 的 transaction 状态因此落在应用侧（本文 §6、M04）。
+
+**一处有意偏离：显式 `ClientContext` 参数。** APCE 的回调只传 `const MetaInfo&`。但 ACR 的 challenge 必须严格绑定发起方（§6.2、§6.3），应用维护的 transaction 表需要 [SWS_DM_00421] 的 `(sourceAddr, globalChannelId)` 二元组作键；而 `ara::diag::MetaInfo` 只提供 `GetContext()` 与 `GetValue(StringView key) -> Optional<StringView>`，**R25-11 未在任何需求体中标准化 key 名称**，应用无法以标准方式取出该二元组。三个备选中，依赖供应商私有 key 不可移植，用 `ClientAuthentication` 实例当身份代理受地址段粒度限制（见配套参考文档 §3.3），因此选择在项目自定义签名中显式传入。由于 ACR 报文处理本就需要供应商 DM 扩展点（`GAP-DM-01`），让该扩展点传出其内部已有的 `globalChannelId` 是合理要求。`DERIVED` + `PROJECT-DECISION`
+
+**两项不属于本接口的能力**：
+
+- `0x08 authenticationConfiguration` 的 RV（ACR 为 `0x03`/`0x04`）是 DM 行为而非回调；[SWS_DM_01246] 把 APCE 的 RV **硬编码为 `0x02`**，共存规则只能在 DM 扩展层用配置或扩展点解决（`GAP-DM-02`、ACR29-PD-07 关联项）。
+- `0x00 deAuthenticate` 已由 DM 处理（[SWS_DM_01244]、[SWS_DM_01245]），**不需要 ACR 专属 `Abort`/`Deauthenticate` 回调**。ACR 侧的 transaction 清理与会话密钥销毁可通过 `ClientAuthentication::SetNotifier`（[SWS_DM_01208]）监听状态转为 `kDeAuthenticated` 来触发，该通知同时覆盖显式去认证、`authenticationTimeout`（[SWS_DM_01210]）与 S3 超时（[SWS_DM_01211]）三种来源。这是纯标准复用点，优于自定义回调。`AUTOSAR-REF`
+
+配置/API 未决项及建议 schema 见配套缺口文档：[AUTOSAR_AP_DM_R25_UDS_0x29_ACR_Config_API_Gap.md](./AUTOSAR_AP_DM_R25_UDS_0x29_ACR_Config_API_Gap.md)。认证状态管理机制、`MetaInfo` 能力与 `ara::diag` 认证类的完整 C++ 约束见 [认证状态管理与 API 约束参考](./AUTOSAR_AP_DM_R25_Authentication_State_and_API_Reference.md)。在项目决策冻结前，任何具体类名、manifest 元类或 callback 签名都不得标为标准。
 
 ## 9. 配置、安全、日志与流程
 
@@ -511,7 +636,7 @@ Deauthenticate(context, reason)
 | ACR29-SEC-007 | session key 不超过 authenticated session 生命周期 | ISO §10.6.3；ISO-NORM | T |
 | ACR29-SEC-008 | 限流/失败尝试策略已冻结且不跨 client 误锁 | ISO NOTE/OEM；PROJECT | T |
 
-### 10.5 接口与授权（7）
+### 10.5 接口与授权（8）
 
 | ID | 要求 | 来源/等级 | 验证 |
 |---|---|---|---|
@@ -520,10 +645,11 @@ Deauthenticate(context, reason)
 | ACR29-API-003 | 项目选择复用标准状态通路时，ACR 成功后调用 Authenticate(newRoles) | [SWS_DM_01206] 定义调用效果；DERIVED/PROJECT | T |
 | ACR29-API-004 | Role 失败后检查 DAL，均失败为 34 | [SWS_DM_01223]–[SWS_DM_01225] | T |
 | ACR29-API-005 | 受保护 SID 34 未授权时返回 7F 34 34 | [SWS_DM_01225]；AUTOSAR-NORM | T |
-| ACR29-API-006 | callback buffer ownership/取消/并发 ABI 冻结 | PROJECT-DECISION | R/T |
+| ACR29-API-006 | callback buffer ownership/取消/并发 ABI 冻结；参考设计与分工约束见 §8.3.2，仍须冻结供应商扩展点契约（含 `globalChannelId` 的传出方式） | PROJECT-DECISION | R/T |
 | ACR29-API-007 | NRC、RV、crypto error 三层映射单一来源 | DERIVED/PROJECT | I/T |
+| ACR29-API-008 | 遵守 APCE 分工先例：长度前缀与 RV 由 DM 层填充、应用错误以 `DiagUdsNrcErrc` 返回、序列状态（challenge 生命周期与 AI 一致性）由应用维护 | [SWS_DM_01233]、[SWS_DM_01231]；AUTOSAR-REF/DERIVED | I/R/T |
 
-### 10.6 配置与可观测性（11）
+### 10.6 配置与可观测性（12）
 
 | ID | 要求 | 来源/等级 | 验证 |
 |---|---|---|---|
@@ -532,14 +658,15 @@ Deauthenticate(context, reason)
 | ACR29-CFG-003 | 配置 challenge/POWN/AP/SKI 上限与 TTL | PROJECT-DECISION | I/T |
 | ACR29-CFG-004 | 配置 rights→Role/DAL 映射并检查引用 | PROJECT-DECISION | I/T |
 | ACR29-CFG-005 | 配置 timeout/mileage/退出与 key erase | ISO §10.6.4；PROJECT | I/T |
-| ACR29-CFG-006 | 配置 NRC/RV 详细错误策略 | ISO §10.6.7/B.5；PROJECT | R/T |
+| ACR29-CFG-006 | 配置 NRC/RV 详细错误策略（仅 ACR 专属段；通用段顺序由 ISO Figure 6 固定） | ISO §10.6.7/B.5；PROJECT | R/T |
+| ACR29-CFG-007 | 不得为 `0x29` 任一子功能（含 ACR `0x05/0x06`）配置 `authenticationEnabled`；如需前置保护只用 session / `0x27` / 环境条件 | `constr_10038`；AUTOSAR-NORM | I/T |
 | ACR29-OBS-001 | 成功、失败、退出均有 correlation 审计 | DERIVED | T |
 | ACR29-OBS-002 | 日志不含 key、原始 POWN、完整 challenge/SKI | DERIVED | I/T |
 | ACR29-OBS-003 | 负响应/event 105 复用策略已冻结 | [SWS_DM_02025]、[SWS_DM_02026]；PROJECT | R/T |
 | ACR29-OBS-004 | 受保护服务 34 报告 event 101 | [SWS_DM_02017]、[SWS_DM_02018] | T |
 | ACR29-OBS-005 | ACR 成功事件不得冒充 AUTOSAR 03 event 104 SHALL | [SWS_DM_02023]、[SWS_DM_02024]；PROJECT | I/R |
 
-**Catalog 合计：58 条需求。**
+**Catalog 合计：60 条需求。**
 
 ## 11. 验收测试矩阵
 
@@ -603,7 +730,7 @@ Deauthenticate(context, reason)
 | ACR29-TC-037 | channel close/reconnect 后旧 06 | 旧 transaction 不可复用 |
 | ACR29-TC-038 | 全局限流与 client 限流 | 21/冻结 NRC；无跨 client 误锁 |
 
-### 11.5 生命周期、授权、日志（10）
+### 11.5 生命周期、授权、日志（12）
 
 | TC | 场景 | 核心断言 |
 |---|---|---|
@@ -617,8 +744,10 @@ Deauthenticate(context, reason)
 | ACR29-TC-046 | Role 或 DAL 允许 SID 34 | 通过 0x29 gate；仍独立检查 0x27 |
 | ACR29-TC-047 | 05/06 失败日志 | correlation/NRC 正确，无秘密数据 |
 | ACR29-TC-048 | ACR 成功日志/事件 | 项目事件与 event 104 边界清楚，不伪称 AUTOSAR 03 |
+| ACR29-TC-049 | 认证门与 `0x27` 门**同时**失败访问受保护服务 | 唯一 NRC 为 `0x34`（ISO Figure 6 认证检查先行），不得返回 `0x33` |
+| ACR29-TC-050 | 为 `0x29` 子功能配置 `authenticationEnabled` | 配置期被拒（`constr_10038`）；确认运行时不存在"认证才能认证"的死锁路径 |
 
-**验收测试合计：48 项。**
+**验收测试合计：50 项。**
 
 ## 12. 风险与项目待决项
 
@@ -632,8 +761,8 @@ Deauthenticate(context, reason)
 | ACR29-PD-04 | COCO、KDF、SKI、key confirmation/激活点 | 026–028 |
 | ACR29-PD-05 | rights/roles/DAL 映射与原子提交点 | 022、039–046 |
 | ACR29-PD-06 | challenge 长度、TTL、替换与 replay cache | 030–033 |
-| ACR29-PD-07 | NRC 0x22/24/31、0x50–5D、RV 的映射与优先级 | 全部失败路径 |
-| ACR29-PD-08 | callback ABI、buffer lifetime、并发、取消、shutdown | 007–008、033–038 |
+| ACR29-PD-07 | ACR 专属段的 NRC 0x22/24/31、0x50–5D、RV 的映射与分支优先级（通用段顺序已由 ISO Figure 6 裁决，不在本项范围） | ACR 专属失败路径 |
+| ACR29-PD-08 | callback ABI、buffer lifetime、并发、取消、shutdown。**参考设计已在 §8.3.2 给出**，待冻结项收窄为：供应商扩展点如何传出 `globalChannelId`、AI 一致性校验落在 DM 扩展层还是应用层、StopOffer/关闭时晚到结果的处置 | 007–008、033–038 |
 | ACR29-PD-09 | 限流、失败次数、锁定与恢复 | 038 |
 | ACR29-PD-10 | authentication timeout、里程源/阈值、失效策略 | 042–043 |
 | ACR29-PD-11 | ACR SecurityEvent IDs/schema 与 AUTOSAR 104/105 复用 | 044、047–048 |
@@ -662,16 +791,20 @@ Deauthenticate(context, reason)
 3. ISO 规定框架但把 token、算法参数、rights/roles、COCO/SKI、失败尝试等留给制造商；本文以 `PROJECT-DECISION` 明示。
 4. AUTOSAR R25-11 没有 ACR callback/DEXT 子类；复用其状态授权 API 不等于 ACR 被 AUTOSAR 标准化。
 5. SecurityEvent 104 的标准触发点是 AUTOSAR APCE `0x03` 成功，不能无依据扩展为 ACR 06 的 AUTOSAR SHALL。
-6. `0x50–0x5D` 的精确英文定义/mnemonic、Figure 11 冲突优先级及功能寻址抑制必须纳入 PDF 联调评审。
+6. `0x50–0x5D` 的精确英文定义/mnemonic、Figure 11 内 `0x29` 服务特定分支的冲突优先级及功能寻址抑制必须纳入 PDF 联调评审。通用校验顺序已由 ISO §8.7.2/§8.7.3.1 确定，不在待评审范围。
+7. **2026-08-27 修订（二）**：§8.3 扩充为三层结构，新增 §8.3.2 参考 C++ 接口设计与 §8.3.3 设计依据。设计的分工模式源自 [SWS_DM_01233]（长度前缀与 RV 由 DM 填、DM 不跟踪序列状态）与 [SWS_DM_01231]（错误码转译）；相对 APCE 有一处有意偏离（显式 `ClientContext`），原因是 `ara::diag::MetaInfo` 的 `GetValue` key 名称在 R25-11 未被标准化，应用无法以标准方式取得 [SWS_DM_00421] 的二元组。同时新增 ACR29-API-008、收窄 ACR29-API-006 与 ACR29-PD-08 的待冻结范围。**该接口设计不是 AUTOSAR API**。
+8. **2026-08-27 修订（一）**：本版更正两处定性。① §3.2/§7.3 的通用校验顺序原按"session/security 先于认证"描述并将双门优先级列为 OEM/项目决策，实际 ISO §8.7.2 Figure 5 与 §8.7.3.1 Figure 6 明确 `0x34` 先于 `0x33`（认证检查在 Mandatory 列、安全检查在 Optional 列），故改为 `ISO-NORM` 并收窄 ACR29-PD-07 范围。② §3.2 关于"是否需要保护 `0x29` 自身"原标为 `PROJECT-DECISION`，实际 DEXT `constr_10038` 明文禁止对 `DiagnosticAuthentication` 子类配置 `authenticationEnabled`，故改为 `AUTOSAR-NORM` 并新增 ACR29-CFG-007、ACR29-TC-049、ACR29-TC-050。
 
 ### 13.2 交叉链接
 
-- [ISO 14229-1:2020 UDS 0x29 Authentication 全量中文译本](./ISO_14229-1_2020_UDS_0x29_Authentication_Full_Spec.md)
-- [AUTOSAR AP DM R25-11 UDS 0x29 Authentication/APCE Spec](./AUTOSAR_AP_DM_R25_UDS_0x29_Authentication_Spec.md)
+- [ISO 14229-1:2020 UDS 0x29 Authentication 全量中文译本](./ISO_14229-1_2020_UDS_0x29_Translation_Full_Spec.md)
+- [AUTOSAR AP DM R25-11 UDS 0x29 APCE Spec](./AUTOSAR_AP_DM_R25_UDS_0x29_APCE_Spec.md)
 - [AUTOSAR R25-11 UDS 0x29 DEXT 与 AP Manifest 配置项清单](./AUTOSAR_AP_DM_R25_0x29_DEXT_Manifest_Config.md)
 - [ACR Config/API 缺口与项目决策框架](./AUTOSAR_AP_DM_R25_UDS_0x29_ACR_Config_API_Gap.md)
-- [AUTOSAR AP DM R25 vs R19 五大技术方向](./AUTOSAR_AP_DM_R25_vs_R19_Five_Directions.md)（方向 3：安全与访问控制）
-- [AUTOSAR AP DM 演进报告 R19–R25](./AUTOSAR_AP_DM_Evolution_Report_R19-R25.md)
+- [ACR 增量实现模块拆分（从既有 UDS 栈出发）](./UDS_0x29_ACR_Unidirectional_Incremental_Module_Breakdown.md)
+- [认证状态管理与 API 约束参考](./AUTOSAR_AP_DM_R25_Authentication_State_and_API_Reference.md)——本文 §6.2 隔离键、§3.2/§7.3 的 Role/DAL 判定与 `constr_10038` 的**规范依据与机制细节**在该文档展开（客户端标识二元组 [SWS_DM_00421]、Conversation 与 ClientAuthentication 的粒度差异、完整 C++ 接口约束）
+- [AUTOSAR AP DM R25 vs R19 五大技术方向](../AUTOSAR_AP_DM_R25_vs_R19_Five_Directions.md)（方向 3：安全与访问控制）
+- [AUTOSAR AP DM 演进报告 R19–R25](../AUTOSAR_AP_DM_Evolution_Report_R19-R25.md)
 
 ---
 

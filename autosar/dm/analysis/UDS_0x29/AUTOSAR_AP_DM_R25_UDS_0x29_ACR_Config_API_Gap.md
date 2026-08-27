@@ -40,8 +40,9 @@
 
 - ACR **双向**变体（`0x07 verifyProofOfOwnershipBidirectional`）——仅在 Gap 表中标注同类缺失，不展开
 - 具体密码算法选型、密钥管理系统设计、证书体系设计
-- APCE 六子功能的规范级细节（已在 [0x29 Authentication Spec](AUTOSAR_AP_DM_R25_UDS_0x29_Authentication_Spec.md) 中覆盖）
-- SOVD 侧认证（见 [SOVD 技术介绍](AUTOSAR_AP_DM_SOVD_Technical_Introduction.md)）
+- APCE 六子功能的规范级细节（已在 [0x29 APCE Spec](AUTOSAR_AP_DM_R25_UDS_0x29_APCE_Spec.md) 中覆盖）
+- 认证状态管理机制与 `ara::diag` 认证类的 C++ 约束（见 [认证状态管理与 API 约束参考](AUTOSAR_AP_DM_R25_Authentication_State_and_API_Reference.md)）
+- SOVD 侧认证（见 [SOVD 技术介绍](../AUTOSAR_AP_DM_SOVD_Technical_Introduction.md)）
 
 ### 1.2 术语
 
@@ -635,11 +636,13 @@ DEXT 中 `DiagnosticVerifyCertificateUnidirectional` 与子功能 `0x01` 的对�
 | 文档 | 关系 |
 |------|------|
 | [`AUTOSAR_AP_DM_R25_UDS_0x29_ACR_Unidirectional_Spec.md`](AUTOSAR_AP_DM_R25_UDS_0x29_ACR_Unidirectional_Spec.md) | **配套实现 Spec**。本文界定“标准缺什么、项目要冻结什么”；该文把未冻结项显式标为 `PROJECT-DECISION`/`BLOCKED`，给出协议、状态、需求与测试基线。两者为“差距框架 ↔ 实现规范”关系 |
-| [`AUTOSAR_AP_DM_R25_UDS_0x29_Authentication_Spec.md`](AUTOSAR_AP_DM_R25_UDS_0x29_Authentication_Spec.md) | APCE 子集（`0x00`–`0x04`、`0x08`）的规范级分析。本文 §4 复用其 Role/DAL/状态章节结论；§5.3 的排除论证以其 API 契约为依据 |
+| [`AUTOSAR_AP_DM_R25_UDS_0x29_APCE_Spec.md`](AUTOSAR_AP_DM_R25_UDS_0x29_APCE_Spec.md) | APCE 子集（`0x00`–`0x04`、`0x08`）的规范级分析。本文 §4 复用其 Role/DAL/状态章节结论；§5.3 的排除论证以其 API 契约为依据 |
+| [`AUTOSAR_AP_DM_R25_Authentication_State_and_API_Reference.md`](AUTOSAR_AP_DM_R25_Authentication_State_and_API_Reference.md) | **机制与 API 参考**。本文 §4.4 指出的"`ExternalAuthentication` 是 ACR 的关键着力点"在该文档 §1.5/§2.5 展开为完整机制说明；§3.1 表中标为 `AUTOSAR-NORM` 的 C14–C18 能力，其接口约束与配置粒度亦在该文档 §4–§6 详述 |
+| [`UDS_0x29_ACR_Unidirectional_Incremental_Module_Breakdown.md`](UDS_0x29_ACR_Unidirectional_Incremental_Module_Breakdown.md) | 从既有 UDS 栈出发的模块与需求拆分。本文 §8.1 的 L1–L6 分层在该文档细化为 16 个模块、99 条需求 |
 | [`AUTOSAR_AP_DM_R25_0x29_DEXT_Manifest_Config.md`](AUTOSAR_AP_DM_R25_0x29_DEXT_Manifest_Config.md) | 0x29 的 DEXT / Manifest 配置项清单。本文 §2.4、§6.1、§6.2 的元类与约束以其第 3/4/6/8 节为基础，并在此之上标注 ACR 缺口 |
-| [`ISO_14229-1_2020_UDS_0x29_Authentication_Full_Spec.md`](ISO_14229-1_2020_UDS_0x29_Authentication_Full_Spec.md) | ISO 侧 0x29 全集（含 ACR 三子功能）。本文 §3 的 ISO 能力项以其为准 |
-| [`AUTOSAR_AP_DM_R25_vs_R19_Five_Directions.md`](AUTOSAR_AP_DM_R25_vs_R19_Five_Directions.md) | 五大演进方向。本文属**方向三「安全与访问控制」**，是该方向下"标准边界"的细化 |
-| [`AUTOSAR_AP_DM_Evolution_Report_R19-R25.md`](AUTOSAR_AP_DM_Evolution_Report_R19-R25.md) | 总演进报告。0x29 自 R21-11 引入（DEXT `[TPS_DEXT_01158]`/`[TPS_DEXT_01159]` 与 SWS `[SWS_DM_01226]` 系列同批加入），至 R25-11 仍限于 APCE——**五个版本内 ACR 支持范围无变化**，说明这是稳定的规范范围决策而非阶段性缺失 |
+| [`ISO_14229-1_2020_UDS_0x29_Translation_Full_Spec.md`](ISO_14229-1_2020_UDS_0x29_Translation_Full_Spec.md) | ISO 侧 0x29 全集（含 ACR 三子功能）。本文 §3 的 ISO 能力项以其为准 |
+| [`AUTOSAR_AP_DM_R25_vs_R19_Five_Directions.md`](../AUTOSAR_AP_DM_R25_vs_R19_Five_Directions.md) | 五大演进方向。本文属**方向三「安全与访问控制」**，是该方向下"标准边界"的细化 |
+| [`AUTOSAR_AP_DM_Evolution_Report_R19-R25.md`](../AUTOSAR_AP_DM_Evolution_Report_R19-R25.md) | 总演进报告。0x29 自 R21-11 引入（DEXT `[TPS_DEXT_01158]`/`[TPS_DEXT_01159]` 与 SWS `[SWS_DM_01226]` 系列同批加入），至 R25-11 仍限于 APCE——**五个版本内 ACR 支持范围无变化**，说明这是稳定的规范范围决策而非阶段性缺失 |
 
 ---
 
