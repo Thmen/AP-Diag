@@ -1513,7 +1513,7 @@ export default function Iso14229AcrAuthFlow() {
 
       <Divider />
       <Text size="small" tone="tertiary">
-        数据来源：autosar/dm/analysis/ISO_14229-1_2020_UDS_0x29_Authentication_Full_Spec.md（对照
+        数据来源：autosar/dm/analysis/UDS_0x29/ISO_14229-1_2020_UDS_0x29_Translation_Full_Spec.md（对照
         ISO 14229-1:2020 PDF §10.6.3、B.5）
       </Text>
     </Stack>

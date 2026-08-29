@@ -46,6 +46,7 @@ AP-DM/
 │       ├── UDS_0x29/                  # 0x29 专题（APCE、ACR Spec、配置缺口、ISO 摘译）
 │       ├── evolution_summary.md|.json # 脚本自动生成，可覆盖
 │       └── canvases/                  # Cursor Canvas 可视化（若有）
+├── canvas-preview/                    # 浏览器预览 .canvas.tsx（Vite；cursor-canvas-web shim）
 ├── scripts/                           # 唯一 Python 项目根（勿在仓库顶层再建 .venv）
 │   ├── pyproject.toml / uv.lock       # uv 依赖锁（当前主要是 pypdf）
 │   ├── .venv/                         # 本地环境（gitignore；由 uv sync 生成）
@@ -67,6 +68,7 @@ AP-DM/
 | `autosar/dm/analysis/**` | 分析结论与报告 | 是（主工作区） |
 | `scripts/pyproject.toml` / `uv.lock` | 脚本依赖契约 | 可改，但须 `uv lock` 并保持可复现 |
 | `scripts/**`（其余） | 转换与分析工具 | 是（保持可复现） |
+| `canvas-preview/` | 本地浏览器预览 canvas | 是（勿把 `node_modules`/`dist` 提交） |
 
 ## 权威性与引用规则
 
@@ -158,6 +160,16 @@ uv run --project scripts scripts/analyze_dm_evolution.py
 - `UDS_0x29/ISO_14229-1_2020_UDS_0x29_Translation_Full_Spec.md` — ISO 14229-1:2020 0x29 摘译
 
 新增报告应与上述交叉链接，避免重复堆砌同一结论。0x29 专题放在 `analysis/UDS_0x29/`，不要再在 `analysis/` 根目录复制一份。
+
+### E. 浏览器预览 Canvas（非 Cursor IDE）
+
+```powershell
+cd canvas-preview
+pnpm install
+pnpm dev
+```
+
+细节见 `canvas-preview/README.md`。勿在仓库顶层用 npm 初始化，以免和 `scripts/` Python 环境混淆。
 
 ## 领域术语（写作时保持一致）
 

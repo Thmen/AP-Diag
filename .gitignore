@@ -31,6 +31,13 @@ venv/
 .env
 .env.*
 
+# Canvas web preview (Node; not the Python scripts env)
+canvas-preview/node_modules/
+canvas-preview/dist/
+canvas-preview/drop-in/**
+!canvas-preview/drop-in/.gitkeep
+canvas-preview/.scan-roots.json
+
 # OS / archives
 *.zip
 *.7z
