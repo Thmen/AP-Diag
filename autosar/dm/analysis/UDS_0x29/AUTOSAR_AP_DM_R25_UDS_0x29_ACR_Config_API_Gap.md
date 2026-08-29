@@ -639,6 +639,7 @@ DEXT 中 `DiagnosticVerifyCertificateUnidirectional` 与子功能 `0x01` 的对�
 | [`AUTOSAR_AP_DM_R25_UDS_0x29_APCE_Spec.md`](AUTOSAR_AP_DM_R25_UDS_0x29_APCE_Spec.md) | APCE 子集（`0x00`–`0x04`、`0x08`）的规范级分析。本文 §4 复用其 Role/DAL/状态章节结论；§5.3 的排除论证以其 API 契约为依据 |
 | [`AUTOSAR_AP_DM_R25_Authentication_State_and_API_Reference.md`](AUTOSAR_AP_DM_R25_Authentication_State_and_API_Reference.md) | **机制与 API 参考**。本文 §4.4 指出的"`ExternalAuthentication` 是 ACR 的关键着力点"在该文档 §1.5/§2.5 展开为完整机制说明；§3.1 表中标为 `AUTOSAR-NORM` 的 C14–C18 能力，其接口约束与配置粒度亦在该文档 §4–§6 详述 |
 | [`UDS_0x29_ACR_Unidirectional_Incremental_Module_Breakdown.md`](UDS_0x29_ACR_Unidirectional_Incremental_Module_Breakdown.md) | 从既有 UDS 栈出发的模块与需求拆分。本文 §8.1 的 L1–L6 分层在该文档细化为 16 个模块、99 条需求 |
+| [`UDS_0x29_ACR_Unidirectional_Config_Item_Inventory.md`](UDS_0x29_ACR_Unidirectional_Config_Item_Inventory.md) | **配置面落地清单**。把本文 30 项 `GAP-*` 与 12 项 `PD-*` 翻译为 12 组 95 条可勾选配置项（诊断栈 + 配置工具双视角），并补充本文未展开的持久化、Crypto/IdsM 宿主归属与跨工具校验规则；其 §17.2 与本文 §7 的冻结清单双向映射 |
 | [`AUTOSAR_AP_DM_R25_0x29_DEXT_Manifest_Config.md`](AUTOSAR_AP_DM_R25_0x29_DEXT_Manifest_Config.md) | 0x29 的 DEXT / Manifest 配置项清单。本文 §2.4、§6.1、§6.2 的元类与约束以其第 3/4/6/8 节为基础，并在此之上标注 ACR 缺口 |
 | [`ISO_14229-1_2020_UDS_0x29_Translation_Full_Spec.md`](ISO_14229-1_2020_UDS_0x29_Translation_Full_Spec.md) | ISO 侧 0x29 全集（含 ACR 三子功能）。本文 §3 的 ISO 能力项以其为准 |
 | [`AUTOSAR_AP_DM_R25_vs_R19_Five_Directions.md`](../AUTOSAR_AP_DM_R25_vs_R19_Five_Directions.md) | 五大演进方向。本文属**方向三「安全与访问控制」**，是该方向下"标准边界"的细化 |

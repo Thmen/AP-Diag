@@ -496,6 +496,8 @@ VerifyPown(profile, challengeServer, challengeClient, additionalParameter,
 | ACRI-M15-03 | 冻结配置载体形态（形态 B 下：私有扩展、`Sdg`/`adminData` 或独立配置文件），并记录标准工具链不可校验的事实 | `PROJECT-DECISION` | R |
 | ACRI-M15-04 | 在项目偏差清单中登记 ACR 相对目标平台规范的偏离范围与影响 | `DERIVED` | R |
 
+> **ACRI-M15-01 的完整展开**见 [ACR 单向配置项清单](./UDS_0x29_ACR_Unidirectional_Config_Item_Inventory.md)：12 组 95 条配置项（含标准落点、通用栈 schema 键、宿主与可裁剪性）、配置期校验规则总表（S / V / V-X 三类）、以及"密码学在应用/HSM + 暂无 IdsM + MVP"场景下的最小诊断栈配置面变体。
+
 ### M16 测试与验证资产（NEW，9 条）
 
 | ID | 需求 | 等级 | 验证 |
@@ -749,6 +751,8 @@ flowchart LR
 ### 10.2 交叉链接
 
 - [ACR 单向认证功能 Spec](./AUTOSAR_AP_DM_R25_UDS_0x29_ACR_Unidirectional_Spec.md) — 行为级需求与 50 项验收测试；本文 §8 与之双向映射
+- [ACR 单向配置项清单](./UDS_0x29_ACR_Unidirectional_Config_Item_Inventory.md) — **M15 的完整展开**：12 组 95 条配置项（诊断栈 + 配置工具双视角）、禁止持久化清单（[SWS_DM_01205]/[01214]/[01212]/[01570]）、跨工具校验规则与最小配置面变体
+- [AUTOSAR IdsM 技术调研报告](../AUTOSAR_AP_IdsM_Technical_Research.md) — **M14 的规范背景**：27 对 SecurityEvent 需求、context data 强制格式、强制性分层，以及"暂无 IdsM 时可不实现上报但需登记偏差"的结论
 - [认证状态管理与 API 约束参考](./AUTOSAR_AP_DM_R25_Authentication_State_and_API_Reference.md) — **M04 / M09 / M13 的规范依据**：客户端标识二元组 [SWS_DM_00421]、Conversation 与 ClientAuthentication 的粒度差异、Role 七层判定与 `0x38` mode 反例、DAL Builder 完整接口、`ara::diag` 认证类的 C++ 实现约束
 - [ACR 配置与 API 缺口分析](./AUTOSAR_AP_DM_R25_UDS_0x29_ACR_Config_API_Gap.md) — 形态 B 下的规范排除证据链与 30 项 Gap；本文 §7 的依据
 - [AUTOSAR AP DM R25 UDS 0x29 APCE Spec](./AUTOSAR_AP_DM_R25_UDS_0x29_APCE_Spec.md) — APCE 子集完整分析；本文 §2.2 的借鉴来源

@@ -505,16 +505,25 @@ Conversation 实例数由 [SWS_DM_00840] 规定：*"shall provide as many instan
 
 ### 3.5 IdsM 的职责边界
 
-IdsM（Intrusion Detection System Manager）**不参与任何状态管理**，它只是安全事件的接收方：
+> **完整展开见独立调研报告**：[AUTOSAR IdsM 技术调研](../AUTOSAR_AP_IdsM_Technical_Research.md)。该文覆盖 IdsM 的功能簇定位与文档族、`IdsmAbstractPortInterface` 的五个子类、SEv→QSEv→Sem/IdsR→SOC 完整链路、DM 侧 **27 对** SecurityEvent 需求全清单、context data 强制格式、强制性分层（报告义务正式有效 / 事件定义与 context data 为 DRAFT），以及"暂无 IdsM 时能否不实现"的工程结论。本节只保留与认证状态管理直接相关的要点。
+
+IdsM（Intrusion Detection System Manager）是**独立的功能簇**（CP 侧为 BSW 模块，AP 侧为 Platform Service），**不是 DM 的子模块，也不参与任何状态管理**——它只是安全事件的接收方。DM 在 IDS 体系中的角色是 **Sensor**：只检测并上报事件，不做过滤、聚合、限流或对外上报。
+
+与认证相关的四个事件：
 
 | 事件 | ID | 触发条件 | 需求 |
 |---|:--:|---|---|
-| `SEV_UDS_AUTHENTICATION_NEEDED` | 101 | 因认证不足返回 NRC `0x34` | [SWS_DM_02017]、[SWS_DM_02018] |
-| （APCE 成功） | 104 | `0x03 proofOfOwnership` 成功 | [SWS_DM_02023]、[SWS_DM_02024] |
-| （`0x29` 负响应） | 105 | 任一 Authentication 请求产生负响应 | [SWS_DM_02025]、[SWS_DM_02026] |
-| `SEV_UDS_SECURITY_ACCESS_SUCCESSFUL` | — | `0x27 CompareKey` 成功解锁 | [SWS_DM_02020] |
+| `SEV_UDS_SECURITY_ACCESS_NEEDED` | 100 | 因安全等级不足返回 NRC `0x33` | [SWS_DM_02015]、[SWS_DM_02016] |
+| `SEV_UDS_AUTHENTICATION_NEEDED` | **101** | 因认证不足返回 NRC `0x34` | [SWS_DM_02017]、[SWS_DM_02018] |
+| `SEV_UDS_SECURITY_ACCESS_SUCCESSFUL` | 102 | `0x27 CompareKey` 成功解锁 | [SWS_DM_02019]、[SWS_DM_02020] |
+| `SEV_UDS_AUTHENTICATION_SUCCESSFUL` | **104** | `0x29` 认证成功（触发点绑定 APCE `0x03`） | [SWS_DM_02023]、[SWS_DM_02024] |
+| `SEV_UDS_AUTHENTICATION_FAILED` | **105** | 任一 Authentication 请求产生负响应 | [SWS_DM_02025]、[SWS_DM_02026] |
 
-Manifest 侧通过 `SecurityEventReportInterface`（[TPS_MANI_01340]，每个 RPort 报告恰一个事件）与 `SecurityEventReportToSecurityEventDefinitionMapping`（[TPS_MANI_01338]）建模。
+（`0x27` 侧另有 `103 SEV_UDS_SECURITY_ACCESS_FAILED`，见调研报告 §3.2 的 27 事件全表。）
+
+Manifest 侧通过 `SecurityEventReportInterface`（[TPS_MANI_01340]，**每个 RPort 报告恰一个事件**）与 `SecurityEventReportToSecurityEventDefinitionMapping`（[TPS_MANI_01338]）建模；后者把 RPort 关联到 `SecurityEventDefinition`，而该元素属于**独立的 Security Extract**，不在 Diagnostic Extract 内。
+
+两点与本文其他章节呼应：`ClientSourceAddress` 的类型是 **uint16**、**不含 `globalChannelId`**，因此安全事件无法区分同一源地址的不同连接——与 §3.3 的隔离缺口同源；事件 `104` 的标准触发点绑定 APCE `0x03`，**不能声称覆盖 ACR `0x06` 成功**（见 ACR Spec 的 `ACR29-OBS-005`）。
 
 ---
 
@@ -1105,6 +1114,7 @@ private:
 | [ACR 增量实现模块拆分](./UDS_0x29_ACR_Unidirectional_Incremental_Module_Breakdown.md) | 从既有栈出发的模块与需求拆分。本文 §3.3 对应其 M04（事务状态机）、§4/§5 对应其 M09（授权模型） |
 | [0x29 DEXT 与 AP Manifest 配置项清单](./AUTOSAR_AP_DM_R25_0x29_DEXT_Manifest_Config.md) | `0x29` 配置元类清单。本文 §4 的 Role 链条与 §4.5 的 `constr_10038` 与之互补 |
 | [ISO 14229-1:2020 UDS 0x29 全量中文译本](./ISO_14229-1_2020_UDS_0x29_Translation_Full_Spec.md) | ISO 侧 `0x29` 全集，含 §10.6.3/10.6.4 与 ACR 三子功能 |
+| [AUTOSAR IdsM 技术调研报告](../AUTOSAR_AP_IdsM_Technical_Research.md) | **本文 §3.5 的完整展开**：IdsM 功能簇定位与文档族、27 对 SecurityEvent 需求、context data 格式、强制性分层、无 IdsM 时的分阶段策略。注意该文一半内容为二手调研，引用前需核对官方 PDF |
 | [AUTOSAR AP DM R25 vs R19 五大技术方向](../AUTOSAR_AP_DM_R25_vs_R19_Five_Directions.md) | 方向 3「安全与访问控制」 |
 | [AUTOSAR AP DM 演进报告 R19–R25](../AUTOSAR_AP_DM_Evolution_Report_R19-R25.md) | 总演进；`0x29` 自 R21-11 引入 |
 

@@ -10,6 +10,7 @@
 | 基线 | AUTOSAR Adaptive Platform Diagnostics R25-11；CP Diagnostic Extract Template R25-11；AP Manifest Specification R25-11 |
 | 分析日期 | 2026-08-07 |
 | 关联 Spec | [AUTOSAR_AP_DM_R25_UDS_0x29_APCE_Spec.md](./AUTOSAR_AP_DM_R25_UDS_0x29_APCE_Spec.md)（§6 API/DEXT、AR29-CFG-*、PD29-*） |
+| ACR 增量配置 | 本文范围为 **APCE**。若项目要新增 ACR（`0x05`/`0x06`），配置增量见 [UDS_0x29_ACR_Unidirectional_Config_Item_Inventory.md](./UDS_0x29_ACR_Unidirectional_Config_Item_Inventory.md)（12 组 95 条，含 Crypto / Persistency / IdsM 宿主与无标准落点项） |
 | 机制与 API 参考 | [AUTOSAR_AP_DM_R25_Authentication_State_and_API_Reference.md](./AUTOSAR_AP_DM_R25_Authentication_State_and_API_Reference.md)（Role/DAL 配置粒度与判定、`constr_10038`、C++ 接口约束） |
 | 演进背景 | [AUTOSAR_AP_DM_Evolution_Report_R19-R25.md](../AUTOSAR_AP_DM_Evolution_Report_R19-R25.md)、[AUTOSAR_AP_DM_R25_vs_R19_Five_Directions.md](../AUTOSAR_AP_DM_R25_vs_R19_Five_Directions.md)（方向 3：安全与访问控制） |
 

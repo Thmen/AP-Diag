@@ -802,6 +802,7 @@ public:
 - [AUTOSAR R25-11 UDS 0x29 DEXT 与 AP Manifest 配置项清单](./AUTOSAR_AP_DM_R25_0x29_DEXT_Manifest_Config.md)
 - [ACR Config/API 缺口与项目决策框架](./AUTOSAR_AP_DM_R25_UDS_0x29_ACR_Config_API_Gap.md)
 - [ACR 增量实现模块拆分（从既有 UDS 栈出发）](./UDS_0x29_ACR_Unidirectional_Incremental_Module_Breakdown.md)
+- [ACR 单向配置项清单（诊断栈 + 配置工具）](./UDS_0x29_ACR_Unidirectional_Config_Item_Inventory.md)——本文 `ACR29-CFG-*` 的配置面展开：12 组 95 条配置项、禁止持久化清单、配置期校验规则总表（可作为 `ACR29-TC-*` 的配置期前置门禁）
 - [认证状态管理与 API 约束参考](./AUTOSAR_AP_DM_R25_Authentication_State_and_API_Reference.md)——本文 §6.2 隔离键、§3.2/§7.3 的 Role/DAL 判定与 `constr_10038` 的**规范依据与机制细节**在该文档展开（客户端标识二元组 [SWS_DM_00421]、Conversation 与 ClientAuthentication 的粒度差异、完整 C++ 接口约束）
 - [AUTOSAR AP DM R25 vs R19 五大技术方向](../AUTOSAR_AP_DM_R25_vs_R19_Five_Directions.md)（方向 3：安全与访问控制）
 - [AUTOSAR AP DM 演进报告 R19–R25](../AUTOSAR_AP_DM_Evolution_Report_R19-R25.md)
