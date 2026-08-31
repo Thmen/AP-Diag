@@ -77,6 +77,56 @@ function uniqueRoots(roots: string[]): string[] {
   return unique;
 }
 
+function expandStarSegments(pattern: string): string[] {
+  const posix = toPosix(pattern);
+  if (!posix.includes("*")) return [path.resolve(pattern)];
+
+  const isAbs = path.isAbsolute(pattern) || posix.startsWith("/");
+  const rawParts = posix.split("/").filter((part) => part.length > 0);
+  let prefixes: string[] = [];
+
+  if (/^[A-Za-z]:$/.test(rawParts[0] ?? "")) {
+    prefixes = [rawParts[0] + "/"];
+    rawParts.shift();
+  } else if (isAbs) {
+    prefixes = ["/"];
+  } else {
+    prefixes = [""];
+  }
+
+  for (const part of rawParts) {
+    const next: string[] = [];
+    for (const prefix of prefixes) {
+      if (part === "*") {
+        const dir = prefix === "" ? "." : prefix;
+        if (!fs.existsSync(dir)) continue;
+        let st: fs.Stats;
+        try {
+          st = fs.statSync(dir);
+        } catch {
+          continue;
+        }
+        if (!st.isDirectory()) continue;
+        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+          if (!entry.isDirectory()) continue;
+          next.push(path.resolve(dir, entry.name));
+        }
+      } else {
+        const joined = prefix === "" ? part : path.join(prefix, part);
+        next.push(path.resolve(joined));
+      }
+    }
+    prefixes = next;
+  }
+  return prefixes.filter((item) => {
+    try {
+      return fs.existsSync(item) && fs.statSync(item).isDirectory();
+    } catch {
+      return false;
+    }
+  });
+}
+
 export function resolveUserRoot(raw: string, repoRoot: string): string | null {
   const trimmed = raw.trim().replace(/\\/g, "/").replace(/\/+$/, "");
   if (!trimmed) return null;
@@ -87,23 +137,39 @@ export function resolveUserRoot(raw: string, repoRoot: string): string | null {
       ? home
       : trimmed;
   const resolved = path.isAbsolute(expanded)
-    ? path.resolve(expanded)
+    ? expanded
     : path.resolve(repoRoot, expanded);
-  return resolved;
+  return path.resolve(resolved);
+}
+
+export function resolveUserRoots(raw: string, repoRoot: string): string[] {
+  const trimmed = raw.trim().replace(/\\/g, "/").replace(/\/+$/, "");
+  if (!trimmed) return [];
+  const home = toPosix(os.homedir());
+  const expanded = trimmed.startsWith("~/")
+    ? `${home}/${trimmed.slice(2)}`
+    : trimmed === "~"
+      ? home
+      : trimmed;
+  const pattern = path.isAbsolute(expanded)
+    ? expanded
+    : path.resolve(repoRoot, expanded);
+  if (toPosix(pattern).includes("*")) return expandStarSegments(pattern);
+  const single = resolveUserRoot(raw, repoRoot);
+  return single ? [single] : [];
+}
+
+function cursorProjectCanvasDirs(): string[] {
+  return expandStarSegments(
+    path.join(os.homedir(), ".cursor", "projects", "*", "canvases"),
+  );
 }
 
 export function resolveScanRoots(previewDir: string, repoRoot: string): string[] {
-  const cursorCanvases = path.join(
-    os.homedir(),
-    ".cursor",
-    "projects",
-    "d-Project-Cursor-AP-DM",
-    "canvases",
-  );
   return uniqueRoots([
     path.join(repoRoot, "autosar", "dm", "analysis"),
     path.join(previewDir, "drop-in"),
-    cursorCanvases,
+    ...cursorProjectCanvasDirs(),
     ...extraDirsFromEnv(),
   ]);
 }
@@ -125,8 +191,7 @@ export function loadSavedScanRoots(
     if (!Array.isArray(parsed.roots)) return null;
     const resolved = parsed.roots
       .filter((item): item is string => typeof item === "string")
-      .map((item) => resolveUserRoot(item, repoRoot))
-      .filter((item): item is string => Boolean(item));
+      .flatMap((item) => resolveUserRoots(item, repoRoot));
     return uniqueRoots(resolved);
   } catch {
     return null;
@@ -371,9 +436,7 @@ export function canvasRegistryPlugin(previewDir: string, repoRoot: string): Plug
               ? body.roots.filter((item): item is string => typeof item === "string")
               : [];
             const roots = uniqueRoots(
-              lines
-                .map((item) => resolveUserRoot(item, repoRoot))
-                .filter((item): item is string => Boolean(item)),
+              lines.flatMap((item) => resolveUserRoots(item, repoRoot)),
             );
             applyRoots(server, roots);
             jsonResponse(res, 200, { roots: describeRoots(repoRoot, roots) });

@@ -1,52 +1,94 @@
 # canvas-preview
 
-本仓库的 **方案 B** 本地宿主：Vite + React，把 `cursor/canvas` alias 到 `@thisismydesign/cursor-canvas-web`，在浏览器里预览 `.canvas.tsx`。
+cursor-canvas 本地预览器，用 Vite + React 预览 `*.canvas.tsx` 及其源码里引用的 Markdown。本目录是独立的 Node / pnpm 工程。
 
-外观是 Mantine 近似实现，**不是** Cursor IDE 里的官方渲染。`.canvas.tsx` 源文件不要改 import。
+## 技术栈
+
+| 层 | 选用 |
+|----|------|
+| 构建 | Vite 8 + `@vitejs/plugin-react` + TypeScript |
+| UI | React 19、`@mantine/core` / `@mantine/charts`、Recharts 2 |
+| Canvas shim | `@thisismydesign/cursor-canvas-web`（经 `src/cursor-canvas.ts` 再导出） |
+| Markdown | `react-markdown` + `remark-gfm`（表格等 GFM） |
+
+## 实现架构
+
+分层：浏览器只跑 React 壳；Vite 在开发/构建期扫盘、做 alias、生成虚拟模块。
+
+```mermaid
+flowchart TB
+  subgraph L1["表现层"]
+    UI["侧栏 Canvas / Linked / Scanned Path"]
+    Stage["预览区 canvas-frame"]
+  end
+
+  subgraph L2["应用层"]
+    App["App.tsx"]
+    Host["CanvasHost"]
+    Md["MarkdownView"]
+  end
+
+  subgraph L3["适配层"]
+    Shim["cursor-canvas.ts"]
+    Actions["canvas-actions.ts"]
+    Web["cursor-canvas-web + Mantine"]
+  end
+
+  subgraph L4["工具层 Vite"]
+    Cfg["vite.config.ts"]
+    Plugin["vite.canvas-registry.ts"]
+    Assoc["associate-canvas-markdown.ts"]
+    Virt["virtual:canvas-registry"]
+  end
+
+  subgraph L5["数据层"]
+    Roots["配置文件 / .scan-roots.json"]
+    Canvas["画布文件 / *.canvas.tsx"]
+    Notes["引用文档 / *.md"]
+  end
+
+  UI --> App
+  Stage --> App
+  App --> Host
+  App --> Md
+  Host --> Shim
+  Shim --> Actions
+  Shim --> Web
+  Cfg --> Plugin
+  Plugin --> Assoc
+  Plugin --> Virt
+  Virt --> App
+  Roots --> Plugin
+  Canvas --> Plugin
+  Notes --> Assoc
+```
+
+- **侧栏区**：Canvas Files 列出扫描到的 `*.canvas.tsx`；Linked Files 只显示**当前 canvas** 源码里解析成功的 `.md`（没有也保留分组）。两组之间可拖高度（展开 Linked Files 时；双击复位）。Scanned Path 可增删改单条路径；点对勾或刷新后才写入 gitignore 的 `.scan-roots.json` 并重扫（`POST /__canvas-preview/scan`，**仅 `pnpm dev`**）。
+- **预览区**：居中 / 全宽由宿主 `.canvas-frame` 统一留白；浅色/深色与布局写入 `localStorage`；当前文件用 URL hash。Canvas 的 `openFile`、正文里的 `.md` 路径、Markdown 内链可跳到已收录的 md；路径无效则提示「未收录该文件」。
+- **扫描**：Vite 插件 `vite.canvas-registry.ts` 递归收集 `*.canvas.tsx`（跳过 `node_modules` / `.git` / `dist` 等），生成虚拟模块 `virtual:canvas-registry`（`id` / `kind` / `relatedIds` / `load()`）。同名且内容 SHA-256 相同只留一份（优先仓库 `analysis/`，其次 `drop-in/`，再次仓库外目录）。
+- **关联**：`associate-canvas-markdown.ts` 被插件调用（不是独立扫描器）。从 canvas 文本抽 `.md` 路径，按绝对路径、仓库根、canvas 目录、上一级目录及上一级下的文件名做存在性检查，**不遍历 Markdown 目录**。命令行打印用 `pnpm associate`。
+- **适配**：`vite.config.ts` 把 `cursor/canvas` alias 到 `src/cursor-canvas.ts`（再导出 `cursor-canvas-web`，并覆盖 `useCanvasAction`）。`server.fs.allow` 含仓库与 `~/.cursor`。
+
+> 无 `.scan-roots.json` 时的默认根路径：`autosar/dm/analysis/`、`canvas-preview/drop-in/`、以及本机所有 `~/.cursor/projects/*/canvases/`（存在才加入）。可用 `$env:CANVAS_EXTRA_DIRS`（分号分隔）。若已有 `.scan-roots.json`，**整表覆盖**默认根，不与默认合并。Scanned Path 里也支持 `*` 通配符（例如 `~/.cursor/projects/*/canvases/`），刷新时展开为实际目录。
 
 ## 启动
 
-在仓库根目录、Windows PowerShell：
+仓库根目录、Windows PowerShell。先装依赖：
 
 ```powershell
 cd canvas-preview
 pnpm install
-pnpm dev
 ```
 
-浏览器打开终端里给出的地址（默认 `http://localhost:5173`）。
-
-## 会扫描哪些文件
-
-启动时只递归收集 `*.canvas.tsx`（跳过 `node_modules` / `.git` / `dist` 等）。每个 canvas 源码里出现的 `.md` 路径会做定点解析（相对 canvas、上一级目录、仓库根），命中的文件挂到该 canvas 分组下；**不会**遍历整个 Markdown 目录。
-
-| 根目录 | 用途 |
-|--------|------|
-| `autosar/dm/analysis/` | 仓库里的分析 canvas（含 `canvases/`） |
-| `canvas-preview/drop-in/` | 任意临时文件：拷进来即可出现在列表 |
-| `%USERPROFILE%\.cursor\projects\d-Project-Cursor-AP-DM\canvases\` | Cursor 托管 canvas 目录（若存在） |
-
-额外目录可在侧栏 **Scanned Path** 里逐行编辑（铅笔图标进入编辑，`+` / `-` 增删，刷新图标重扫）。支持仓库相对路径与 `~/`。结果保存在本地 `canvas-preview/.scan-roots.json`（不进 Git）。也仍可用环境变量：
-
-```powershell
-$env:CANVAS_EXTRA_DIRS = "D:\other\canvases;D:\tmp"
-pnpm dev
-```
-
-侧栏编辑结果保存在本地 `canvas-preview/.scan-roots.json`（不进 Git），下次启动沿用。
-
-左侧分两组：**Canvas Files** 列出扫描到的全部 `.canvas.tsx`（搜索框只过滤这一组）；**Linked Files** 固定贴在列表底部，列出当前 canvas 源码里解析成功的 `.md`，没有有效文件时仍显示该分组。URL hash 会记住当前文件。在已监视目录里**新增、修改或删除** `.canvas.tsx` / 已关联 `.md` 会刷新列表。Canvas 的 `openFile` 动作、canvas 正文里的 `.md` 路径、以及 Markdown 内的 `.md` 链接都会跳到对应 Markdown 预览（`react-markdown` + `remark-gfm`，含表格）；源码里写了路径但磁盘上不存在时右上角提示「未收录该文件」。
-
-同名且内容 SHA-256 相同的 canvas 只保留一份（优先仓库 `analysis/`，其次 `drop-in/`，再次 Cursor 托管目录）。同名但内容不同会同时列出。
-
-单独打印 canvas → markdown 关联（同样只解析源码路径，不扫全量 `.md`）：
-
-```powershell
-pnpm associate
-```
+| 命令 | 作用 |
+|------|------|
+| `pnpm dev` | 开发服务器（默认 `http://localhost:5173`），热更新、可改扫描路径并刷新 |
+| `pnpm build` | `tsc --noEmit` 后产出 `dist/` |
+| `pnpm preview` | 本地预览已构建的 `dist/`（无扫描 API、无按源码热重载、前须先 `pnpm build`） |
+| `pnpm associate` | 打印各 canvas 解析到的 `.md`（不扫全量 Markdown） |
 
 ## 限制
 
-- 必须是可被 Vite 编译的 TSX：`import` 只能来自 `cursor/canvas`，且 **default export** 一个组件；或普通 `.md` 文本。
-- 运行时新增扫描目录须点刷新；Vite 仍受 `server.fs.allow` 约束，默认已包含仓库与 `~/.cursor`。
-- Python 环境仍只在 `scripts/`；本目录是独立的 Node 工程。
+- Canvas 必须 `import` 自 `cursor/canvas`，且 **default export** 一个 React 组件。
+- 开发模式下新增扫描目录要点刷新；Vite 仍受 `server.fs.allow` 约束。
+- 源码里写了 `.md` 但磁盘上不存在时，预览区提示「未收录该文件」，不会去全库猜文件名。
